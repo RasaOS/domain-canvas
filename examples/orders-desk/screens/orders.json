@@ -1,0 +1,32 @@
+{
+  "layout": "1.0.0",
+  "screen": { "name": "orders", "title": "Orders" },
+  "regions": [
+    {
+      "id": "nav",
+      "component": "button-row",
+      "props": { "buttons": [ { "id": "nav:home", "label": "Overview" } ] }
+    },
+    {
+      "id": "orders",
+      "component": "table",
+      "props": {
+        "columns": [ "Order", "Customer", "Status" ],
+        "rows": [
+          [ "#1042", "Meridian LLC", "open" ],
+          [ "#1041", "Bluefin Co", "shipped" ]
+        ]
+      }
+    },
+    {
+      "id": "actions",
+      "component": "button-row",
+      "props": {
+        "buttons": [
+          { "id": "order_opened", "label": "Open newest" },
+          { "id": "refresh_requested", "label": "Refresh" }
+        ]
+      }
+    }
+  ]
+}

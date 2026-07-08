@@ -1,0 +1,7 @@
+{
+  "layout": "1.0.0",
+  "screen": { "name": "extra", "title": "Extra" },
+  "regions": [
+    { "id": "notes", "component": "markdown-block", "props": { "markdown": "orphan" } }
+  ]
+}

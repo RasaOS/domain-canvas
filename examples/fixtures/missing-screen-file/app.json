@@ -1,0 +1,15 @@
+{
+  "app": "rasa.app.v1",
+  "id": "missing-screen-file",
+  "name": "Missing Screen File (must fail: screens/orders.json registered but absent)",
+  "version": "0.1.0",
+  "created": "2026-07-08",
+  "screens": [
+    { "id": "home", "title": "Home", "default": true },
+    { "id": "orders", "title": "Orders" }
+  ],
+  "active_screen": "home",
+  "events": [
+    { "action": "nav:orders", "emits": ["nav"], "handling": "SWITCH_SCREEN orders" }
+  ]
+}

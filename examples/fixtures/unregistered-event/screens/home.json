@@ -1,0 +1,11 @@
+{
+  "layout": "1.0.0",
+  "screen": { "name": "home", "title": "Home" },
+  "regions": [
+    {
+      "id": "actions",
+      "component": "button-row",
+      "props": { "buttons": [ { "id": "do_thing", "label": "Do the thing" } ] }
+    }
+  ]
+}

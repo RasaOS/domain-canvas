@@ -105,6 +105,8 @@ tree, which makes that tenant your parent and your principal. Concretely:
 ## Discipline
 
 - The write-order law is never skipped or reordered, even for tiny changes.
+- **The gate:** run `check-app` on the app directory before every publish
+  (PROCESSES.md §gate); a red check blocks the publish.
 - Keep the full layout under ~32KB and any single artifact under ~10KB.
 - One canvas version per user request (don't publish intermediate states).
 - Bump `app.json#version` once per shipped request; one CHANGELOG line.

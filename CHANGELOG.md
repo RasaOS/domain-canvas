@@ -1,5 +1,28 @@
 # Changelog — rasa.orchestrator.canvas
 
+## 0.4.0 — 2026-07-08
+
+The enforcement layer. The law is now machine-checked.
+`schemas/rasa.app.v1.schema.json` publishes the app-manifest contract.
+`bin/check-app <app-dir>` audits an app directory against APP_MODEL.md:
+registries exhaustive both ways, event coverage (button-row ids, card
+on_click, form submit, `rasa.emit` scans inside artifacts), nav contract +
+targets, screen.name identity (newly codified: layout `screen.name` equals
+the screen id), size budgets, state/data hygiene. `bin/check-doctrine`
+audits the doctrine itself: the seven process names across
+PROCESSES/BUILDER/CLAUDE, COMPONENTS.md ↔ `bin/_contract.py` component
+lockstep, version plumbing (VERSION == rasa.json == CHANGELOG), schema
+parses, BUILDER terseness, and the fixture gate — `examples/orders-desk`
+(golden reference app) must pass and all four `examples/fixtures/*`
+negatives (orphan-screen, missing-screen-file, unregistered-event,
+bad-active-screen) must fail. Authoring-time teeth: `.githooks/pre-commit`
++ GitHub Actions run check-doctrine on every commit/PR. Runtime teeth:
+PROCESSES.md gains §gate — every publishing process runs check-app between
+the file writes and canvas_set; RED blocks the publish (BUILDER.md
+discipline + APP_MODEL.md §enforcement updated). Kernel asks #9 (stable
+element-mount handle, e.g. RASA_ELEMENT_ROOT) and #10 (kernel-side
+manifest/layout validation adopting the published schema) filed.
+
 ## 0.3.0 — 2026-07-07
 
 The strict app model. content/ now defines the whole vertical lifecycle so

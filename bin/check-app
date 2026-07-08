@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""check-app — audit a canvas app directory against content/APP_MODEL.md.
+
+Usage: check-app <app-dir>
+
+Checks (FAIL = red, blocks publish; WARN = advisory):
+  - app.json shape (rasa.app.v1, kebab id, semver, required fields)
+  - screens[] registry exhaustive both ways (no orphan files, no missing files)
+  - active_screen registered; at most one default screen
+  - each screen file: valid rasa.layout.v1, screen.name == screen id,
+    unique region ids, components in the kernel allowlist (warn outside the
+    shell-rendered subset)
+  - event coverage: every emittable action (button-row ids, card on_click,
+    form submit, artifact rasa.emit calls) registered in app.json#events;
+    stale registry rows warned
+  - nav contract on multi-screen apps: a button-row 'nav' region reaching
+    every sibling; nav:* targets are registered screens
+  - size budgets: layout warn >28KB fail >32KB; artifact warn >10KB fail >16KB
+  - state/*.json parse; data/*.json carry _source/_derived_at stamps
+
+Exit 0 = GREEN (warnings allowed), 1 = RED, 2 = usage error.
+"""
+import json
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _contract import KERNEL_ALLOWLIST, SHELL_RENDERED
+
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+EMIT = re.compile(r"rasa\s*\.\s*emit\s*\(\s*['\"]([^'\"]+)['\"]")
+
+LAYOUT_WARN, LAYOUT_FAIL = 28 * 1024, 32 * 1024
+ARTIFACT_WARN, ARTIFACT_FAIL = 10 * 1024, 16 * 1024
+
+findings = []
+
+
+def fail(msg):
+    findings.append(("FAIL", msg))
+
+
+def warn(msg):
+    findings.append(("WARN", msg))
+
+
+def load_json(path):
+    try:
+        return json.loads(path.read_text())
+    except Exception as e:
+        fail(f"{path.name}: not valid JSON ({e})")
+        return None
+
+
+def screen_actions(doc):
+    """Every action this layout can emit."""
+    actions = set()
+    for region in doc.get("regions") or []:
+        comp = region.get("component")
+        props = region.get("props") or {}
+        if comp == "button-row":
+            for b in props.get("buttons") or []:
+                if isinstance(b, dict) and b.get("id"):
+                    actions.add(str(b["id"]))
+        if comp in ("card-strip", "card-list"):
+            for c in props.get("cards") or []:
+                if isinstance(c, dict) and c.get("on_click"):
+                    actions.add(str(c["on_click"]))
+        if comp == "form":
+            actions.add("submit")
+        if comp == "code-block" and props.get("render"):
+            actions |= set(EMIT.findall(props.get("code", "")))
+    return actions
+
+
+def check_manifest(m):
+    if m.get("app") != "rasa.app.v1":
+        fail(f"app.json: #app is '{m.get('app')}' — must be 'rasa.app.v1'")
+    for key in ("id", "name", "version", "created", "screens", "active_screen", "events"):
+        if key not in m:
+            fail(f"app.json: required field '{key}' missing")
+    if "id" in m and not KEBAB.match(str(m["id"])):
+        fail(f"app.json: id '{m['id']}' is not kebab-case")
+    if "version" in m and not SEMVER.match(str(m["version"])):
+        fail(f"app.json: version '{m['version']}' is not semver")
+    if "created" in m and not DATE.match(str(m["created"])):
+        fail(f"app.json: created '{m['created']}' is not YYYY-MM-DD")
+
+
+def check_screen_registry(m):
+    screens = m.get("screens") or []
+    ids = []
+    for s in screens:
+        if not isinstance(s, dict) or not s.get("id"):
+            fail("app.json#screens: row without an id")
+            continue
+        sid = str(s["id"])
+        if sid in ids:
+            fail(f"app.json#screens: duplicate screen id '{sid}'")
+        ids.append(sid)
+        if not KEBAB.match(sid):
+            fail(f"app.json#screens: id '{sid}' is not kebab-case")
+        if not s.get("title"):
+            fail(f"app.json#screens['{sid}']: title missing")
+    if sum(1 for s in screens if isinstance(s, dict) and s.get("default")) > 1:
+        fail("app.json#screens: more than one default screen")
+    active = m.get("active_screen")
+    if active and active not in ids:
+        fail(f"app.json: active_screen '{active}' is not a registered screen")
+    return ids
+
+
+def check_events_registry(m):
+    reg = {}
+    for row in m.get("events") or []:
+        if not isinstance(row, dict) or not row.get("action"):
+            fail("app.json#events: row without an action")
+            continue
+        a = str(row["action"])
+        if a in reg:
+            fail(f"app.json#events: duplicate action '{a}'")
+        reg[a] = row
+        if not row.get("handling"):
+            fail(f"app.json#events['{a}']: no handling declared")
+        if not row.get("emits"):
+            fail(f"app.json#events['{a}']: no emits[] regions declared")
+    return reg
+
+
+def check_screen_file(path, sid, ids):
+    """Returns (actions, region_ids) or (set(), set()) on parse failure."""
+    doc = load_json(path)
+    if doc is None:
+        return set(), set()
+    if doc.get("layout") != "1.0.0":
+        warn(f"{path.name}: layout version '{doc.get('layout')}' (expected '1.0.0')")
+    scr = doc.get("screen") or {}
+    if scr.get("name") != sid:
+        fail(f"{path.name}: screen.name '{scr.get('name')}' must equal the screen id '{sid}'")
+    if not scr.get("title"):
+        fail(f"{path.name}: screen.title missing")
+    regions = doc.get("regions")
+    if not isinstance(regions, list) or not regions:
+        fail(f"{path.name}: regions[] missing or empty")
+        return set(), set()
+
+    rids = []
+    for r in regions:
+        rid = r.get("id")
+        if not rid:
+            fail(f"{path.name}: region without an id")
+            continue
+        if rid in rids:
+            fail(f"{path.name}: duplicate region id '{rid}'")
+        rids.append(rid)
+        comp = r.get("component")
+        props = r.get("props") or {}
+        if comp not in KERNEL_ALLOWLIST:
+            fail(f"{path.name}#{rid}: component '{comp}' is not in the kernel allowlist")
+        elif comp not in SHELL_RENDERED:
+            warn(f"{path.name}#{rid}: '{comp}' is allowlisted but the shell error-tiles it — prefer the rendered subset")
+        if comp == "code-block" and props.get("render"):
+            n = len(str(props.get("code", "")).encode())
+            if n > ARTIFACT_FAIL:
+                fail(f"{path.name}#{rid}: artifact is {n}B — exceeds the {ARTIFACT_FAIL}B hard cap")
+            elif n > ARTIFACT_WARN:
+                warn(f"{path.name}#{rid}: artifact is {n}B — over the ~10KB budget")
+
+    n = path.stat().st_size
+    if n > LAYOUT_FAIL:
+        fail(f"{path.name}: layout is {n}B — exceeds the {LAYOUT_FAIL}B hard cap")
+    elif n > LAYOUT_WARN:
+        warn(f"{path.name}: layout is {n}B — nearing the ~32KB cap")
+
+    # nav contract (multi-screen apps only)
+    if len(ids) > 1:
+        nav = next((r for r in regions if r.get("id") == "nav"), None)
+        if nav is None:
+            fail(f"{path.name}: multi-screen app but no 'nav' region (nav contract, APP_MODEL.md)")
+        elif nav.get("component") != "button-row":
+            fail(f"{path.name}#nav: nav region must be a button-row")
+        else:
+            buttons = (nav.get("props") or {}).get("buttons") or []
+            targets = {str(b.get("id", ""))[4:] for b in buttons
+                       if isinstance(b, dict) and str(b.get("id", "")).startswith("nav:")}
+            missing = set(ids) - {sid} - targets
+            if missing:
+                fail(f"{path.name}#nav: missing nav button(s) for sibling screen(s): {', '.join(sorted(missing))}")
+            unknown = targets - set(ids)
+            if unknown:
+                fail(f"{path.name}#nav: nav target(s) are not registered screens: {', '.join(sorted(unknown))}")
+
+    return screen_actions(doc), set(rids)
+
+
+def check_hygiene(app):
+    state = app / "state"
+    if state.is_dir():
+        for p in sorted(state.glob("*.json")):
+            load_json(p)
+    data = app / "data"
+    if data.is_dir():
+        for p in sorted(data.glob("*.json")):
+            doc = load_json(p)
+            if isinstance(doc, dict) and ("_source" not in doc or "_derived_at" not in doc):
+                warn(f"data/{p.name}: derived data without _source/_derived_at stamps")
+    if not (app / "CHANGELOG.md").is_file():
+        warn("CHANGELOG.md: missing (one line per shipped change)")
+
+
+def report():
+    for kind, msg in findings:
+        print(f"{kind}  {msg}")
+    n_fail = sum(1 for k, _ in findings if k == "FAIL")
+    n_warn = sum(1 for k, _ in findings if k == "WARN")
+    print(f"{'RED' if n_fail else 'GREEN'} — {n_fail} fail, {n_warn} warn")
+    return 1 if n_fail else 0
+
+
+def main():
+    if len(sys.argv) != 2:
+        print(__doc__.strip().splitlines()[2])
+        return 2
+    app = Path(sys.argv[1]).resolve()
+    manifest_path = app / "app.json"
+    if not manifest_path.is_file():
+        fail("app.json: missing — not an app directory (BOOTSTRAP not run?)")
+        return report()
+    m = load_json(manifest_path)
+    if m is None:
+        return report()
+
+    check_manifest(m)
+    ids = check_screen_registry(m)
+    reg = check_events_registry(m)
+
+    screens_dir = app / "screens"
+    files = {p.stem: p for p in screens_dir.glob("*.json")} if screens_dir.is_dir() else {}
+    if not screens_dir.is_dir():
+        fail("screens/: directory missing")
+    for sid in ids:
+        if sid not in files:
+            fail(f"screens/{sid}.json: registered in app.json#screens but the file is missing")
+    for stem in sorted(set(files) - set(ids)):
+        fail(f"screens/{stem}.json: orphan screen file — not registered in app.json#screens")
+
+    emitted = {}   # action -> {screen ids that emit it}
+    all_region_ids = set()
+    for sid in sorted(set(ids) & set(files)):
+        actions, rids = check_screen_file(files[sid], sid, ids)
+        all_region_ids |= rids
+        for a in actions:
+            emitted.setdefault(a, set()).add(sid)
+
+    # event coverage
+    for a, sids in sorted(emitted.items()):
+        if a.startswith("nav:") and a[4:] not in ids:
+            fail(f"action '{a}' (emitted by {', '.join(sorted(sids))}) targets an unregistered screen")
+        if a not in reg:
+            fail(f"action '{a}' is emitted by screen(s) {', '.join(sorted(sids))} but not registered in app.json#events")
+    for a, row in sorted(reg.items()):
+        if a not in emitted:
+            warn(f"app.json#events['{a}']: registered but no published screen emits it (stale row?)")
+            continue
+        for region in row.get("emits") or []:
+            if region not in all_region_ids:
+                warn(f"app.json#events['{a}']: emits region '{region}' not found on any screen")
+
+    check_hygiene(app)
+    return report()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

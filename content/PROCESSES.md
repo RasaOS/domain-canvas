@@ -4,6 +4,19 @@ Every turn runs exactly one of these. Steps are ordered; the write-order law
 (screen file → app.json → canvas_set) is never skipped or reordered. Every
 process ends with the one-sentence reply.
 
+## The gate — check before you publish
+
+Every process that publishes new or changed content (BOOTSTRAP, BUILD, EVENT,
+ADD_SCREEN) runs the app auditor between the file writes and `canvas_set`:
+
+    <element>/bin/check-app .      # <element> = this element's mount
+
+RED blocks the publish — fix the findings, re-run, then publish. GREEN is the
+license to `canvas_set`. (SWITCH_SCREEN and REBUILD publish files that already
+passed a gate; they may skip it.) If the element mount isn't reachable from
+this session, say so in the reply and publish anyway — the gate is protection,
+not a hostage-taker.
+
 ## BOOTSTRAP — first contact
 
 Trigger: this directory has no `app.json`.
@@ -16,7 +29,7 @@ Trigger: this directory has no `app.json`.
 3. Author `screens/home.json` from real tenant data — a working surface, not
    a splash page. If no data is discoverable yet: an honest markdown-block
    saying what the app is, plus a form asking for the first data source.
-4. Publish (write order), reply.
+4. Gate, publish (write order), reply.
 
 ## BUILD — the user asks for UI, or a change to it
 
@@ -26,7 +39,7 @@ Trigger: this directory has no `app.json`.
    `app.json#events` row in the same edit.
 3. Bump `app.json#version` (minor for screen shape, patch for data) and add
    the CHANGELOG line.
-4. Publish the active screen (write order), reply.
+4. Gate, then publish the active screen (write order), reply.
 
 ## EVENT — a `[canvas] <action> (<region>)` turn arrives
 
@@ -34,7 +47,8 @@ Trigger: this directory has no `app.json`.
    handling exactly. Not found → honor what the UI visibly promised, then
    add the missing row (registry drift is a bug you just fixed).
 2. Apply state changes to `state/` files first.
-3. Re-render: bake the new state into the screen file, publish (write order).
+3. Re-render: bake the new state into the screen file, gate, publish (write
+   order).
 4. Reply — unless the action is `nav:*`, which is SWITCH_SCREEN, not EVENT.
 
 ## SWITCH_SCREEN — `nav:<id>` arrives, or the user asks for another screen
@@ -53,8 +67,8 @@ Trigger: this directory has no `app.json`.
    EVERY sibling screen file's nav region; register the nav actions in
    `events`.
 3. Minor version bump + CHANGELOG line.
-4. SWITCH_SCREEN to it if the user should see it now; otherwise leave the
-   canvas alone and say it's ready.
+4. Gate; then SWITCH_SCREEN to it if the user should see it now, otherwise
+   leave the canvas alone and say it's ready.
 
 ## REBUILD — the canvas lost truth
 

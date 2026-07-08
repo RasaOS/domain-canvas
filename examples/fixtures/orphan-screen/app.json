@@ -1,0 +1,10 @@
+{
+  "app": "rasa.app.v1",
+  "id": "orphan-screen",
+  "name": "Orphan Screen (must fail: screens/extra.json is unregistered)",
+  "version": "0.1.0",
+  "created": "2026-07-08",
+  "screens": [ { "id": "home", "title": "Home", "default": true } ],
+  "active_screen": "home",
+  "events": []
+}

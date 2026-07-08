@@ -1,0 +1,10 @@
+{
+  "app": "rasa.app.v1",
+  "id": "unregistered-event",
+  "name": "Unregistered Event (must fail: button emits do_thing, events[] is empty)",
+  "version": "0.1.0",
+  "created": "2026-07-08",
+  "screens": [ { "id": "home", "title": "Home", "default": true } ],
+  "active_screen": "home",
+  "events": []
+}

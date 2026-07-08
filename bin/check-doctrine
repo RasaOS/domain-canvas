@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""check-doctrine — self-audit: the doctrine files, the plumbing, the fixtures.
+
+Usage: check-doctrine
+
+Checks:
+  - the five content/ files exist
+  - PROCESSES.md defines exactly the seven canonical processes; BUILDER.md
+    and CLAUDE.md mention every one of them
+  - COMPONENTS.md component lists parse; rendered subset is a subset of the
+    kernel allowlist; bin/_contract.py matches COMPONENTS.md exactly
+  - version plumbing: VERSION == rasa.json#version == newest CHANGELOG entry
+  - schemas/rasa.app.v1.schema.json exists and parses
+  - BUILDER.md stays terse (warn > 8KB — it is read in-context every turn)
+  - the golden example (examples/orders-desk) passes check-app
+  - every negative fixture (examples/fixtures/*) fails check-app
+  - .githooks/pre-commit and the CI workflow exist
+
+Exit 0 = GREEN (warnings allowed), 1 = RED.
+"""
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _contract import KERNEL_ALLOWLIST, SHELL_RENDERED
+
+ROOT = Path(__file__).resolve().parent.parent
+PROCESSES = ["BOOTSTRAP", "BUILD", "EVENT", "SWITCH_SCREEN", "ADD_SCREEN", "REBUILD", "RETIRE"]
+CONTENT_FILES = ["BUILDER.md", "APP_MODEL.md", "PROCESSES.md", "COMPONENTS.md", "KERNEL_ASKS.md"]
+
+findings = []
+
+
+def fail(msg):
+    findings.append(("FAIL", msg))
+
+
+def warn(msg):
+    findings.append(("WARN", msg))
+
+
+def read(path):
+    try:
+        return path.read_text()
+    except FileNotFoundError:
+        fail(f"{path.relative_to(ROOT)}: missing")
+        return None
+
+
+def parse_component_list(text, anchor, doc_name):
+    """First backtick span after `anchor`, entries separated by '·'."""
+    i = text.find(anchor)
+    if i < 0:
+        fail(f"{doc_name}: anchor '{anchor}' not found — cannot verify component lockstep")
+        return None
+    m = re.search(r"`([^`]+)`", text[i:], re.S)
+    if not m:
+        fail(f"{doc_name}: no backtick component list after '{anchor}'")
+        return None
+    return [c.strip() for c in m.group(1).replace("\n", " ").split("·") if c.strip()]
+
+
+def check_content_files():
+    return {name: read(ROOT / "content" / name) for name in CONTENT_FILES}
+
+
+def check_processes(docs):
+    ptext = docs.get("PROCESSES.md")
+    if ptext is None:
+        return
+    headers = re.findall(r"^## ([A-Z_]+) —", ptext, re.M)
+    if headers != PROCESSES:
+        fail(f"PROCESSES.md: processes are {headers} — the canon is {PROCESSES} (names AND order)")
+    builder = docs.get("BUILDER.md") or ""
+    claude = read(ROOT / "CLAUDE.md") or ""
+    for name in PROCESSES:
+        if name not in builder:
+            fail(f"BUILDER.md: process '{name}' never mentioned — the loop must route to every process")
+        if name not in claude:
+            fail(f"CLAUDE.md: process '{name}' never mentioned — the capsule must name every process")
+
+
+def check_component_lockstep(docs):
+    ctext = docs.get("COMPONENTS.md")
+    if ctext is None:
+        return
+    allow = parse_component_list(ctext, "## Kernel allowlist", "COMPONENTS.md")
+    rendered = parse_component_list(ctext, "RENDERS this subset", "COMPONENTS.md")
+    if allow is not None and allow != KERNEL_ALLOWLIST:
+        fail("bin/_contract.py KERNEL_ALLOWLIST has drifted from COMPONENTS.md — edit them together")
+    if rendered is not None and rendered != SHELL_RENDERED:
+        fail("bin/_contract.py SHELL_RENDERED has drifted from COMPONENTS.md — edit them together")
+    if allow and rendered and not set(rendered) <= set(allow):
+        fail(f"COMPONENTS.md: rendered subset has components outside the allowlist: {sorted(set(rendered) - set(allow))}")
+
+
+def check_version_plumbing():
+    version = (read(ROOT / "VERSION") or "").strip()
+    rasa = read(ROOT / "rasa.json")
+    changelog = read(ROOT / "CHANGELOG.md") or ""
+    if rasa:
+        try:
+            rasa_version = json.loads(rasa).get("version")
+        except Exception as e:
+            fail(f"rasa.json: not valid JSON ({e})")
+            rasa_version = None
+        if rasa_version and version and rasa_version != version:
+            fail(f"version drift: VERSION={version} but rasa.json#version={rasa_version}")
+    m = re.search(r"^## (\d+\.\d+\.\d+)", changelog, re.M)
+    if m and version and m.group(1) != version:
+        fail(f"version drift: VERSION={version} but newest CHANGELOG entry is {m.group(1)}")
+    if not m:
+        fail("CHANGELOG.md: no '## x.y.z' entry found")
+
+
+def check_schema():
+    p = ROOT / "schemas" / "rasa.app.v1.schema.json"
+    text = read(p)
+    if text is None:
+        return
+    try:
+        json.loads(text)
+    except Exception as e:
+        fail(f"schemas/rasa.app.v1.schema.json: not valid JSON ({e})")
+
+
+def check_terseness(docs):
+    builder = docs.get("BUILDER.md")
+    if builder is not None and len(builder.encode()) > 8 * 1024:
+        warn(f"BUILDER.md is {len(builder.encode())}B — it is read every turn; keep it terse (<8KB)")
+
+
+def run_check_app(app_dir):
+    return subprocess.run(
+        [sys.executable, str(ROOT / "bin" / "check-app"), str(app_dir)],
+        capture_output=True, text=True,
+    )
+
+
+def check_fixture_gate():
+    golden = ROOT / "examples" / "orders-desk"
+    if not golden.is_dir():
+        fail("examples/orders-desk: golden example missing")
+    else:
+        r = run_check_app(golden)
+        if r.returncode != 0:
+            fail(f"golden example fails check-app:\n{r.stdout.strip()}")
+    fixtures = sorted(p for p in (ROOT / "examples" / "fixtures").glob("*") if p.is_dir())
+    if not fixtures:
+        fail("examples/fixtures: no negative fixtures found")
+    for f in fixtures:
+        r = run_check_app(f)
+        if r.returncode == 0:
+            fail(f"negative fixture '{f.name}' PASSES check-app — it must fail (the checker lost a tooth)")
+
+
+def check_hooks():
+    hook = ROOT / ".githooks" / "pre-commit"
+    if not hook.is_file():
+        warn(".githooks/pre-commit: missing — commits are ungated locally")
+    workflow = ROOT / ".github" / "workflows" / "check.yml"
+    if not workflow.is_file():
+        warn(".github/workflows/check.yml: missing — pushes are ungated in CI")
+
+
+def main():
+    docs = check_content_files()
+    check_processes(docs)
+    check_component_lockstep(docs)
+    check_version_plumbing()
+    check_schema()
+    check_terseness(docs)
+    check_fixture_gate()
+    check_hooks()
+    for kind, msg in findings:
+        print(f"{kind}  {msg}")
+    n_fail = sum(1 for k, _ in findings if k == "FAIL")
+    n_warn = sum(1 for k, _ in findings if k == "WARN")
+    print(f"{'RED' if n_fail else 'GREEN'} — {n_fail} fail, {n_warn} warn")
+    return 1 if n_fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

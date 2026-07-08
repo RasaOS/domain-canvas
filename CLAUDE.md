@@ -41,6 +41,9 @@ brain behind every RasaOS canvas app ("Studio" vertical). Its entire role:
   SWITCH_SCREEN, ADD_SCREEN, REBUILD, RETIRE (PROCESSES.md).
 - **Three version clocks, never conflated:** canvas version (kernel's),
   `app.json#version` (the app's semver), element VERSION (this repo's).
+- **The law is machine-checked:** `bin/check-app` gates every publish
+  (PROCESSES.md §gate); `bin/check-doctrine` gates every commit to this repo
+  (pre-commit + CI).
 
 ## The files
 
@@ -57,6 +60,13 @@ brain behind every RasaOS canvas app ("Studio" vertical). Its entire role:
   screens. Change them together.
 - `content/KERNEL_ASKS.md` — platform requests; keep it honest (verified
   behaviors only, with dates/versions).
+- `schemas/rasa.app.v1.schema.json` — the published app-manifest contract.
+- `bin/check-app`, `bin/check-doctrine`, `bin/_contract.py` — the enforcement
+  layer. `_contract.py`'s component lists MUST match COMPONENTS.md
+  (check-doctrine enforces it); edit them together.
+- `examples/orders-desk` — the golden reference app (must pass check-app);
+  `examples/fixtures/*` — the negative fixtures (must fail). Both gate every
+  commit via check-doctrine.
 
 ## Don'ts
 
@@ -66,3 +76,6 @@ brain behind every RasaOS canvas app ("Studio" vertical). Its entire role:
   in three files; a change in one is checked against the other two.
 - Version bumps follow the workspace convention: VERSION +
   `rasa.json#version` + CHANGELOG entry, same commit.
+- Don't commit red: `bin/check-doctrine` must be GREEN. Enable the local
+  gate once per clone with `git config core.hooksPath .githooks`; CI runs
+  the same check on every push/PR.

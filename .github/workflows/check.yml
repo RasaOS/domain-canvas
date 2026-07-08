@@ -1,0 +1,9 @@
+name: check
+on: [push, pull_request]
+jobs:
+  doctrine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check-doctrine (includes golden + negative fixture gate)
+        run: python3 bin/check-doctrine

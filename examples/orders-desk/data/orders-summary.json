@@ -1,0 +1,6 @@
+{
+  "_source": "../../data/orders.csv",
+  "_derived_at": "2026-07-08",
+  "open": 12,
+  "shipped": 30
+}

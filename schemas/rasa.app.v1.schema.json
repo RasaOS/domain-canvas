@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/RasaOS/orchestrator-canvas/main/schemas/rasa.app.v1.schema.json",
+  "title": "rasa.app.v1 — canvas app manifest (app.json)",
+  "description": "The manifest every canvas app directory carries. Shape contract only — cross-field law (registry exhaustiveness, event coverage, nav targets) is audited by bin/check-app per content/APP_MODEL.md.",
+  "type": "object",
+  "required": ["app", "id", "name", "version", "created", "screens", "active_screen", "events"],
+  "additionalProperties": false,
+  "properties": {
+    "app": { "const": "rasa.app.v1" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "kebab-case, stable, never renamed after creation"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "the app's semver: patch = data/state refresh, minor = screen changed/added, major = app model reshaped"
+    },
+    "created": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "screens": {
+      "type": "array",
+      "minItems": 1,
+      "description": "exhaustive — every file in screens/ has a row here and vice versa",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1 },
+          "default": { "type": "boolean" }
+        }
+      }
+    },
+    "active_screen": {
+      "type": "string",
+      "description": "the screen currently projected onto the canvas; must be a registered screen id"
+    },
+    "data_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "purpose"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "description": "tenant-relative; never outside the tenant root" },
+          "purpose": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "exhaustive — every action any published screen can emit has a row; EVENT executes the row exactly",
+      "items": {
+        "type": "object",
+        "required": ["action", "emits", "handling"],
+        "additionalProperties": false,
+        "properties": {
+          "action": { "type": "string", "minLength": 1 },
+          "emits": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "description": "region id(s) that emit this action"
+          },
+          "handling": { "type": "string", "minLength": 1, "description": "what the user was promised — the declared behavior" }
+        }
+      }
+    }
+  }
+}

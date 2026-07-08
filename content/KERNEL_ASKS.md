@@ -24,6 +24,21 @@ surgical; none block the current session-management model.
 5. **Canvas/layout size limits, documented** — artifacts ride the layout doc;
    the practical ceiling should be a contract, not a discovery.
 
+## Enforcement (filed 2026-07-08)
+
+9. **A stable element-mount handle for sessions** — runtime sessions need to
+   invoke tooling that ships with their element: this element's
+   `bin/check-app` gates every publish (PROCESSES.md §gate), but the doctrine
+   can only say "`<element>/bin/check-app`" because the mount path isn't
+   exposed. Ask: give sessions the element's mount path (e.g. a
+   `RASA_ELEMENT_ROOT` env var or a documented stable path).
+10. **Kernel-side manifest/layout validation** — `canvas_set` already
+    validates component names; adopting published schemas would turn the
+    doctrine's soft gates into hard walls. The app-manifest contract ships in
+    this element at `schemas/rasa.app.v1.schema.json`; a layout-document
+    schema is the natural companion (pairs with ask #5's size limits — one
+    validation surface, structured errors back to the session).
+
 ## Canvas persistence + history (verified against kernel dist, 2026-07-07)
 
 The store is Redis-backed (`canvas/store.js`, key `rasa:canvas:<tenant>:<id>`),

@@ -15,6 +15,11 @@ turns) — publishing a new canvas version is shipping the app.
 - **Component/artifact contract:** `content/COMPONENTS.md` (kept in lockstep
   with the shell's renderer, frontend-rasaos SA-026/027/028)
 - **Platform asks:** `content/KERNEL_ASKS.md`
+- **Enforcement:** `schemas/rasa.app.v1.schema.json` (the published manifest
+  contract) + `bin/check-app <app-dir>` (audits an app; gates every publish
+  per PROCESSES.md §gate) + `bin/check-doctrine` (self-audit; gates every
+  commit via `.githooks/pre-commit` and CI). `examples/orders-desk` is the
+  golden reference app; `examples/fixtures/*` must fail.
 
 Session model: one app = one session, keyed
 `(element=rasa.orchestrator.canvas, cwd=<tenant>/.rasaos/apps/<app-id>)`.

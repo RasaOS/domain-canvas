@@ -18,7 +18,9 @@ session that reads it can take over any app cold — no archaeology, no asking.
 
 - `<app-id>` is kebab-case, stable, never renamed after creation.
 - `screens/<screen-id>.json` holds EXACTLY what `canvas_set` publishes for
-  that screen — byte-for-byte the last published layout.
+  that screen — byte-for-byte the last published layout. Its layout
+  `screen.name` equals the screen id: the file name is the identity and the
+  document agrees.
 - `state/` files are the app's memory. One concern per file (`saves.json`,
   `filters.json`); the EVENT process writes here and nowhere else.
 - `data/` holds derived views (a parsed CSV, an aggregation). Tenant files
@@ -82,6 +84,18 @@ The kernel canvas store is Redis-backed and a container restart can wipe it
 | canvas `version` | kernel | Bumps on every `canvas_set`; monotonic render ordering. Not yours to manage. |
 | `app.json#version` | you | The app's semver. patch = data/state refresh · minor = screen changed or added · major = app model reshaped. Bump once per shipped user request; mirror one line in the app's `CHANGELOG.md`. |
 | element version | workspace | This doctrine's own release version (`VERSION`/`rasa.json`). Nothing to do with apps. |
+
+## Enforcement — the law is machine-checked
+
+- The manifest contract is published as `schemas/rasa.app.v1.schema.json`
+  (in this element's repo).
+- `bin/check-app <app-dir>` (ships with this element) audits an app against
+  this whole file: registries exhaustive both ways, event coverage (including
+  `rasa.emit` scans inside artifacts), nav contract + targets, screen.name
+  identity, size budgets, state/data hygiene. RED blocks a publish — see
+  PROCESSES.md §gate.
+- The doctrine audits itself: `bin/check-doctrine` keeps BUILDER / APP_MODEL /
+  PROCESSES / COMPONENTS in lockstep and gates every commit to the element.
 
 ## Multi-screen — many screens, one canvas (for now)
 

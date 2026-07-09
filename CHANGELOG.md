@@ -1,5 +1,11 @@
 # Changelog — rasa.orchestrator.canvas
 
+## 0.5.1 — 2026-07-09
+
+### Added generic `/sync` + `/promote` + `/kit`-aware `bin/init` (canon SA-024)
+
+- `bin/init` now clones the Element source into `<project>/kit/<element>/`; `/sync` smart-pulls upstream, `/promote` smart-pushes local edits back upstream (both directory-mirror → installed into consumers).
+
 ## 0.5.0 — 2026-07-09
 
 ### Folded to `rasa.domain.canvas` (canon SA-023)

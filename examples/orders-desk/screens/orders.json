@@ -5,7 +5,7 @@
     {
       "id": "nav",
       "component": "button-row",
-      "props": { "buttons": [ { "id": "nav:home", "label": "Overview" } ] }
+      "props": { "buttons": [ { "id": "nav:home", "intent": "nav:home", "label": "Overview" } ] }
     },
     {
       "id": "orders",
@@ -23,8 +23,8 @@
       "component": "button-row",
       "props": {
         "buttons": [
-          { "id": "order_opened", "label": "Open newest" },
-          { "id": "refresh_requested", "label": "Refresh" }
+          { "id": "order_opened", "intent": "order_opened", "label": "Open newest" },
+          { "id": "refresh_requested", "intent": "refresh_requested", "label": "Refresh" }
         ]
       }
     }

@@ -105,9 +105,11 @@ The kernel keys one canvas per session (KERNEL_ASKS #1), so:
   at a time. Switching screens = publishing a different file (SWITCH_SCREEN).
 - **The nav contract:** every screen with siblings carries a region
   `{ "id": "nav", "component": "button-row" }` whose buttons are
-  `{ "id": "nav:<screen-id>", "label": "<title>" }` — one per OTHER screen.
-  A `[canvas] nav:<id> (nav)` turn is a SWITCH_SCREEN, always. Keep nav
-  first in `regions[]` unless the screen has a reason not to.
+  `{ "id": "nav:<screen-id>", "intent": "nav:<screen-id>", "label": "<title>" }`
+  — one per OTHER screen. `intent` is what the shell emits as the action
+  (COMPONENTS.md §interactions) — a button without it emits ambiguous
+  `on_click`. A `[canvas] nav:<id> (nav)` turn is a SWITCH_SCREEN, always.
+  Keep nav first in `regions[]` unless the screen has a reason not to.
 - Adding a screen touches every sibling's nav (ADD_SCREEN owns this).
 - When `args.canvas_id` lands, screens map 1:1 onto named canvases and
   `active_screen` becomes advisory. The files, the nav contract, and the

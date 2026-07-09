@@ -10,9 +10,12 @@ Checks (FAIL = red, blocks publish; WARN = advisory):
   - each screen file: valid rasa.layout.v1, screen.name == screen id,
     unique region ids, components in the kernel allowlist (warn outside the
     shell-rendered subset)
-  - event coverage: every emittable action (button-row ids, card on_click,
-    form submit, artifact rasa.emit calls) registered in app.json#events;
-    stale registry rows warned
+  - event coverage: every emittable action registered in app.json#events;
+    stale registry rows warned. Emission grammar mirrors the shell renderer
+    (verified 2026-07-09): button-row emits intent (else 'on_click' — warned);
+    card-strip/card-list with on_card_click emit 'on_card_click'; form emits
+    'on_submit'; a non-form region with props.on_click emits 'on_click';
+    artifact rasa.emit calls are scanned from code-block{render:true}
   - nav contract on multi-screen apps: a button-row 'nav' region reaching
     every sibling; nav:* targets are registered screens
   - size budgets: layout warn >28KB fail >32KB; artifact warn >10KB fail >16KB
@@ -55,22 +58,35 @@ def load_json(path):
         return None
 
 
-def screen_actions(doc):
-    """Every action this layout can emit."""
+def screen_actions(doc, where):
+    """Every action this layout can emit — mirrors the shell's emission grammar.
+
+    The shell (frontend-rasaos components.tsx, verified 2026-07-09) emits:
+    button-row → intent || 'on_click' (button_id in payload); card-strip/card-list
+    with props.on_card_click → 'on_card_click'; form → 'on_submit'; any non-form
+    region with props.on_click → 'on_click'; artifacts → rasa.emit(action) calls.
+    """
     actions = set()
     for region in doc.get("regions") or []:
         comp = region.get("component")
         props = region.get("props") or {}
+        rid = region.get("id", "?")
         if comp == "button-row":
             for b in props.get("buttons") or []:
-                if isinstance(b, dict) and b.get("id"):
-                    actions.add(str(b["id"]))
-        if comp in ("card-strip", "card-list"):
-            for c in props.get("cards") or []:
-                if isinstance(c, dict) and c.get("on_click"):
-                    actions.add(str(c["on_click"]))
+                if not isinstance(b, dict):
+                    continue
+                if b.get("intent"):
+                    actions.add(str(b["intent"]))
+                elif b.get("id"):
+                    actions.add("on_click")
+                    warn(f"{where}#{rid}: button '{b['id']}' has no intent — the shell "
+                         f"emits ambiguous 'on_click' (set intent to the action name)")
+        if comp in ("card-strip", "card-list") and props.get("on_card_click"):
+            actions.add("on_card_click")
         if comp == "form":
-            actions.add("submit")
+            actions.add("on_submit")
+        if comp != "form" and props.get("on_click"):
+            actions.add("on_click")
         if comp == "code-block" and props.get("render"):
             actions |= set(EMIT.findall(props.get("code", "")))
     return actions
@@ -184,8 +200,8 @@ def check_screen_file(path, sid, ids):
             fail(f"{path.name}#nav: nav region must be a button-row")
         else:
             buttons = (nav.get("props") or {}).get("buttons") or []
-            targets = {str(b.get("id", ""))[4:] for b in buttons
-                       if isinstance(b, dict) and str(b.get("id", "")).startswith("nav:")}
+            targets = {str(b.get("intent", ""))[4:] for b in buttons
+                       if isinstance(b, dict) and str(b.get("intent", "")).startswith("nav:")}
             missing = set(ids) - {sid} - targets
             if missing:
                 fail(f"{path.name}#nav: missing nav button(s) for sibling screen(s): {', '.join(sorted(missing))}")
@@ -193,7 +209,7 @@ def check_screen_file(path, sid, ids):
             if unknown:
                 fail(f"{path.name}#nav: nav target(s) are not registered screens: {', '.join(sorted(unknown))}")
 
-    return screen_actions(doc), set(rids)
+    return screen_actions(doc, path.name), set(rids)
 
 
 def check_hygiene(app):

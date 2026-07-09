@@ -1,5 +1,44 @@
 # Changelog — rasa.orchestrator.canvas
 
+## 0.6.0 — 2026-07-09
+
+The truth pass + the binding design. The doctrine now matches the verified
+platform. COMPONENTS.md rewritten to the shell's REAL contract (verified
+against frontend-rasaos source 2026-07-09): the 11 rendered components'
+actual prop shapes (`markdown-block{content}` not `{markdown}`;
+`card-*{title,subtitle}`; `form` fields by `id` → `on_submit`;
+`chart{data}` horizontal bars only; `timeline{events}`; `media-viewer`
+link-only) + the real emission grammar (button-row emits
+`intent || 'on_click'` — NOT the button id; `on_card_click`; `on_submit`;
+region-level `on_click`). The §artifact escape hatch — which nothing
+renders (no iframe/sandbox path exists in the shell; `code-block{render:true}`
+is plain text) — replaced by §custom-visuals: honest status + the real path,
+the sandboxed `html-embed` escape region (full implementable spec at
+docs/design/html-embed-spec.md; 3D/animation stays a priority capability).
+The nav contract gains `intent` (APP_MODEL + golden app + fixtures);
+bin/check-app derives actions by the real grammar and warns on intent-less
+buttons; golden app fixed (its markdown-block rendered EMPTY in the real
+shell while the gate passed GREEN — the proof the enforcement gap is real);
+schema `$id` → RasaOS/domain-canvas. KERNEL_ASKS: ask #3's false "the shell
+already renders it sandboxed" claim corrected on the record; asks #11
+(file-event → canvas bridge; nudge-session v1, registered-bindings target)
+and #12 (direct edit → file write) filed. NEW `docs/`: the ratified design
+corpus — binding-model.md (context index `rasa.canvas.context.v1`,
+`bindings[]` + `writes[]` registry, three binding modes incl.
+provision-then-bind, the extended write-order law, resolved OQ-1/4/7 + the
+kernel-heavy/domain-light principle), ui-engine-and-architecture.md
+(per-layer engine decisions, Brand-Kit tokens, canon doc-10 alignment,
+conversational-canvas profile), html-embed-spec.md, BUILD_ORDER.md, and the
+team handoffs docs/handoff/{KERNEL_GAPS,FRONTEND_RASAOS_GAPS}.md (delivered
+copies placed in both repos 2026-07-09). NEW task system:
+rasa.module.tasks v0.1.2 installed via its own bin/init — first
+`requires.elements[]` dependency declared; `.claude/done-gate.md` authored
+with this domain's real gates (check-doctrine GREEN + the doctrine-truth
+rule: capability claims carry verified evidence); Phase 1 "The binding
+brain — design → doctrine" registered with TASK-001..008 full specs
+(TASK-001 ships as this release; TASK-008 relayed → blocked on team
+responses).
+
 ## 0.5.0 — 2026-07-09
 
 ### Folded to `rasa.domain.canvas` (canon SA-023)

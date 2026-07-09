@@ -14,9 +14,17 @@ surgical; none block the current session-management model.
    nonexistent cwd silently falls back to the default session (verified live,
    kernel v0.31.0), which forces the shell's bootstrap turn. Auto-vivify would
    remove a whole failure mode.
-3. **SA-027 vocabulary: an artifact region kind** (`html-embed {html, height}`)
-   — the shell already renders it sandboxed; today it must ride
-   `code-block{render:true}` because canvas_set rejects unknown components.
+3. **SA-027 vocabulary: an artifact region kind** (`html-embed {html, height}`).
+   **CORRECTED 2026-07-09:** the original filing claimed "the shell already
+   renders it sandboxed" — verified FALSE against frontend-rasaos source: the
+   shell has NO artifact/iframe path for canvas content (its only iframe is a
+   same-origin unsandboxed vertical proxy), and `code-block{render:true}`
+   renders as plain text. Nothing renders artifacts today. The full
+   implementable spec is `docs/design/html-embed-spec.md` (this repo). Kernel
+   half of the ask: add `html-embed` to the canvas component allowlist + the
+   published `rasa.layout.v1` schema enum, with a `props.html` maxLength cap
+   (~16KB) and `height` bounds. Shell half filed with frontend-rasaos
+   (`docs/handoff/FRONTEND_RASAOS_GAPS.md`).
 4. **Element-scoped tool policy** — this orchestrator's sessions need
    canvas_* + fs/shell in the app dir; they do NOT need Gmail/web MCPs. The
    manifest declares `permissions`; the kernel should enforce per-element
@@ -64,3 +72,35 @@ already versioned (every `set` bumps `version`) and keeps one last-known-good
    revert is a single step. For genuine history (a version timeline, revert to
    any version N), keep a bounded ring of the last N layouts per canvas +
    `revert_to(version)`. Pairs with ask #7's surface.
+
+## Data binding + reactivity (filed 2026-07-09; verified against kernel v0.27.0 source)
+
+The binding objective: a canvas region bound to tenant/module files updates
+when those files change — by ANY writer, not just this session. What already
+exists (verified): an fsnotify file-watcher runs at boot
+(`gateway/internal/filewatch.go`) and publishes `file.*` events to
+`events.files.*`; the per-canvas SSE push (`GET /v1/canvas/{id}/watch`) is
+live and robust; `PUT /v1/fs/{path}` writes files and emits authoritative
+`file.*` events. The watcher is wired to NOTHING on the canvas side. Full
+context: `docs/handoff/KERNEL_GAPS.md` (this repo).
+
+11. **A file-event → canvas bridge.** Subscribe to `events.files.*`; when a
+    changed path falls inside a session's app/bound scope, refresh the canvas.
+    Mechanism options (decision pending, see the handoff doc): (a) kernel
+    parses `app.json` bindings — rejected, couples kernel to element doctrine;
+    (b) bindings registered with the canvas doc at publish — fast direct
+    patching, but only for trivial projections; (c) **recommended v1**: the
+    bridge nudges the owning session (a system turn naming the changed path);
+    the session re-derives and republishes — works for every binding shape,
+    zero kernel coupling, one-turn latency. (b) can layer on later for
+    sub-second simple projections. Loop-protection needed (the session's own
+    writes must not re-trigger it; precedent: `recentlyAPIWritten` dedup).
+12. **A direct edit → file write path** (no LLM turn): `POST
+    /v1/canvas/{id}/edit` (or a `field.commit` event) that, for a bound
+    region, writes the target file directly (validated, tenant-scoped) and
+    emits both `file.*` and `ui` events. Precedent: `PUT /v1/fs/{path}`.
+    Pairs with #11: the write triggers the bridge, which refreshes the canvas
+    — closing "user edits a bound field → file updates → UI reflects"
+    without a model in the loop. Honest caveat to carry: inotify over the
+    macOS Docker bind-mount is best-effort — host-side edits should route
+    through `/v1/fs` (the kernel's own `filewatch.go` documents this).

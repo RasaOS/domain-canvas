@@ -5,7 +5,7 @@
     {
       "id": "nav",
       "component": "button-row",
-      "props": { "buttons": [ { "id": "nav:orders", "label": "Orders" } ] }
+      "props": { "buttons": [ { "id": "nav:orders", "intent": "nav:orders", "label": "Orders" } ] }
     },
     {
       "id": "kpis",
@@ -15,7 +15,7 @@
     {
       "id": "notes",
       "component": "markdown-block",
-      "props": { "markdown": "**Orders Desk** — numbers derive from `data/orders.csv` (see `data/orders-summary.json` for the derivation stamp)." }
+      "props": { "content": "**Orders Desk** — numbers derive from `data/orders.csv` (see `data/orders-summary.json` for the derivation stamp)." }
     }
   ]
 }

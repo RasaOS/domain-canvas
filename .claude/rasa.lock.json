@@ -1,0 +1,12 @@
+{
+  "lock_version": 1,
+  "element": {
+    "name": "rasa.module.tasks",
+    "kind": "module",
+    "repo": "https://github.com/RasaOS/module-tasks",
+    "branch": "main"
+  },
+  "pinned_sha": "8d83b0cf3d0920cb98c456777d8fa8552d4d6ef1",
+  "installed_at": "2026-07-09",
+  "overrides": []
+}

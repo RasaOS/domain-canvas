@@ -19,114 +19,70 @@ calendar-grid · media-viewer · code-block · ai-rail · map ·
 markdown-block · button-row · card-list`
 
 The RasaOS shell currently RENDERS this subset (the rest error-tile —
-prefer these): `table · card-strip · card-list · form · chart · code-block ·
-media-viewer · kpi-tile · timeline · markdown-block · button-row`.
+author ONLY these): `table · card-strip · card-list · form · chart · code-block ·
+media-viewer · kpi-tile · timeline · markdown-block · button-row`
 
-Prop shapes the shell renders (keep to these):
-- **kpi-tile** `{value, label, delta?}`
-- **table** `{columns: [string | {key,label}], rows: [[]|{}]}`
-- **card-strip / card-list** `{cards: [{title, body?/description?, on_click?}]}`
-- **chart** `{type: 'bar'|'line', series/points, labels}`
-- **form** `{fields: [{name,label,type}], submit_label?}` → emits `submit`
-- **timeline** `{items: [{label, detail?, at?}]}`
-- **button-row** `{buttons: [{id,label}]}` → each click emits its id
-- **markdown-block** `{markdown}` · **code-block** `{language, code}`
-- **media-viewer** `{src (data: URI), alt?}`
+## Prop shapes the shell actually consumes (verified against the renderer, 2026-07-09)
 
-Interactions: any `on_click`/button/submit emits a `ui_event` turn back into
-this session as `[canvas] <action> (<region-id>)`.
+These are the REAL shapes from frontend-rasaos `app/src/canvas/components.tsx`.
+The renderer reads props defensively — a wrong key doesn't crash, it renders
+EMPTY. Author exactly these:
 
-## §artifact — the escape hatch (arbitrary generated UI)
+- **kpi-tile** `{value, label, delta?}` — delta colored by leading `-`
+- **table** `{title?, columns: [string | {key,label}], rows: [[…] | {…keyed by column key}]}`
+- **card-strip** `{cards: [{title, subtitle?}]}` — horizontal, non-interactive
+- **card-list** `{cards: [{title, subtitle?}], on_card_click?}` — with
+  `on_card_click` set, each card is a button (see emission grammar)
+- **chart** `{data: [{label, value}]}` — horizontal bars ONLY (no line type,
+  no axes)
+- **form** `{fields: [{id, label?, type?, placeholder?}], submit_label?}` —
+  `type:'textarea'` special-cased, else a raw input type
+- **timeline** `{events: [{at, label}]}`
+- **button-row** `{buttons: [{id, intent, label?, style?}]}` — `style:'primary'`
+  for the accent button; ALWAYS set `intent` (it is the emitted action; `id` is
+  just the button's identity)
+- **markdown-block** `{content}` — escaped subset only: `#/##/###`, `**bold**`,
+  `` `code` ``, `- ` lists, paragraphs (raw HTML is escaped, never rendered)
+- **code-block** `{code}` — plain `<pre>` text; NO syntax highlight, NO
+  render carriage (`render:true` does nothing)
+- **media-viewer** `{src}` — renders a safe LINK (http/https only, opens in a
+  new tab); it never embeds. data:/javascript: render as inert text.
 
-For custom visuals, animation, drawing, and 3D, emit an **artifact region**:
-ONE complete self-contained HTML document rendered by the shell in a
-**sandboxed iframe** (opaque origin, `allow-scripts` only — no parent DOM, no
-cookies/storage, no top navigation).
+## Interactions — the emission grammar (what actions actually arrive)
 
-Preferred form (pending SA-027 vocabulary addition):
-```json
-{ "id": "hero", "component": "html-embed",
-  "props": { "html": "<!doctype html>…", "height": 460 } }
-```
-**Carriage fallback** (the kernel currently rejects `html-embed` — use the
-allowlisted code-block; identical rendering):
-```json
-{ "id": "hero", "component": "code-block",
-  "props": { "language": "html", "code": "<!doctype html>…",
-             "render": true, "height": 460 } }
-```
+Every interaction arrives in this session as `[canvas] <action> (<region-id>)`.
+The shell computes the action string as follows — register every emittable
+action in `app.json#events`:
 
-Artifact rules:
-- **Self-contained**: inline CSS/JS; images as data: URIs or drawn (SVG/canvas).
-- **Libraries**: `<script src>` is allowed ONLY from cdnjs.cloudflare.com,
-  cdn.jsdelivr.net, unpkg.com, esm.sh (the shell injects a CSP enforcing
-  this; fetch/XHR/WebSocket are blocked entirely). Three.js, D3, Chart.js
-  et al. from those CDNs are fine — **3D/WebGL works**.
-- **The bridge**: `window.rasa.emit(action, payload)` is predefined inside
-  every artifact. It is the ONLY way out of the sandbox; calls arrive to you
-  as `[canvas]` turns. Wire every meaningful interaction through it.
-- **Stateless across versions**: the document fully re-renders on every canvas
-  version. Bake server-truth state INTO the html you publish (e.g.
-  `const SAVES=3`); never rely on in-iframe state surviving a version. (Ephemeral
-  in-session UI state — hover, an open tab, a spin value — SHOULD live in the
-  framework; only durable state round-trips through `emit`.)
-- **Size**: keep the *document you author* ≤ ~10KB — that text rides inside the
-  canvas layout JSON. Libraries pulled from the allowlisted CDNs load at
-  runtime and DO NOT count against that budget, so a React/three.js app whose
-  source is 6KB is fine even though it loads megabytes of framework.
+- **button-row**: emits `intent`, else `'on_click'` with `{button_id}` in the
+  payload. An intent-less button is ambiguous — always set `intent`.
+  Navigation buttons carry `intent: "nav:<screen-id>"`.
+- **card-list** with `on_card_click`: emits `on_card_click` with
+  `{card_index, title}`.
+- **form**: emits `on_submit` with `{<field-id>: value, …}` (uncontrolled).
+- **any non-form region** with `props.on_click`: the whole region is clickable
+  and emits `on_click` with `{region_id}`.
 
-## §artifact starter kits — reach for these, don't reinvent
+## §custom-visuals — 3D / animation (IN FLIGHT — do NOT author artifacts today)
 
-Custom UI does NOT mean hand-rolled DOM. You have two batteries-included kits;
-default to the first, escalate to the second only when you need the React
-ecosystem (recharts, a specific lib).
+Custom visuals, animation, drawing, and 3D land via a **sandboxed `html-embed`
+escape region** — one self-contained HTML document in a sandboxed iframe with a
+`window.rasa.emit` bridge. **It is not renderable yet** (verified 2026-07-09:
+the shell has no artifact/iframe path; `code-block{render:true}` renders as
+plain text; `media-viewer` never embeds). The implementable spec is
+`docs/design/html-embed-spec.md` in this element's repo; the kernel half is
+KERNEL_ASKS #3 (rewritten), the shell half is filed with frontend-rasaos.
 
-**Kit A — preact + htm (preferred: light, no build/eval, ~12KB runtime).**
-JSX-like via tagged templates. This is your default for interactive component UI:
+Until it ships:
 
-```html
-<!doctype html><html><head><meta charset="utf-8"><style>
-  :root{color-scheme:dark} body{margin:0;font:14px system-ui;background:#0c1a17;color:#f4ead6}
-  .card{background:#12241f;border:1px solid #24413a;border-radius:10px;padding:16px}
-  button{background:#d96b3a;color:#0c1a17;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
-</style></head><body><div id="root"></div>
-<script type="module">
-  import { h, render } from 'https://esm.sh/preact@10'
-  import { useState } from 'https://esm.sh/preact@10/hooks'
-  import htm from 'https://esm.sh/htm@3'
-  const html = htm.bind(h)
-  const SEED = 3 // ← bake server-truth here
-  function App(){
-    const [n,setN] = useState(SEED)
-    return html`<div class="card">
-      <h2>Saved ${n}×</h2>
-      <button onClick=${()=>{ setN(n+1); window.rasa.emit('save_logged',{count:n+1}) }}>Save</button>
-    </div>`
-  }
-  render(html`<${App}/>`, document.getElementById('root'))
-</script></body></html>
-```
-
-**Kit B — React 18 + JSX via Babel (full parity, heavier).** Use when a library
-needs React. CSP allows `unsafe-eval`, so in-browser Babel works:
-
-```html
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<div id="root"></div>
-<script type="text/babel">
-  const { useState } = React
-  function App(){ const [n,setN]=useState(SEED)
-    return <button onClick={()=>{setN(n+1); window.rasa.emit('save_logged',{count:n+1})}}>Saved {n}×</button> }
-  ReactDOM.createRoot(document.getElementById('root')).render(<App/>)
-</script>
-```
-
-Kit rules: keep local UI state in the framework; call `window.rasa.emit` only
-for state the app must remember (it round-trips as a `[canvas]` turn, and you
-republish with the new SEED baked in). Match the shell palette (deep teal/green,
-coral `#d96b3a`, bone `#f4ead6`). One artifact region per screen.
+- Express every screen in the rendered subset above — data UIs (tables, KPIs,
+  lists, forms, timelines) need nothing else.
+- If a request genuinely needs 3D/animation, say so honestly on-canvas (a
+  markdown-block noting the capability is in flight) and build the best
+  declarative approximation. Never emit an artifact region — it error-tiles.
+- When it ships: ONE artifact region per screen, self-contained document
+  ≤ ~10KB (check-app already enforces the caps), CDN-loaded procedural
+  three.js/WebGL works, runtime asset fetches (textures/GLTF/wasm) do not.
 
 ## Versioning
 

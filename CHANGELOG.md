@@ -37,7 +37,21 @@ with this domain's real gates (check-doctrine GREEN + the doctrine-truth
 rule: capability claims carry verified evidence); Phase 1 "The binding
 brain — design → doctrine" registered with TASK-001..008 full specs
 (TASK-001 ships as this release; TASK-008 relayed → blocked on team
-responses).
+responses). *Merge note: this release merges main's 0.5.1 + 0.5.2 (below),
+which landed in parallel — their identity layer (`rasa.identity` +
+`/whoami`) and kit-aware `bin/init` + `/sync` + `/promote` are included.*
+
+## 0.5.2 — 2026-07-09
+
+### Element identity layer (canon SA-025)
+
+- Added `rasa.identity` ("the RasaOS domain for building canvas-vertical UIs"); `bin/init` generates `.claude/rasa-identity.md` from it every install + stamps project-owned `.claude/rasa-deployment.md`; ships `/whoami`; CLAUDE.md "Who you are" header.
+
+## 0.5.1 — 2026-07-09
+
+### Added generic `/sync` + `/promote` + `/kit`-aware `bin/init` (canon SA-024)
+
+- `bin/init` now clones the Element source into `<project>/kit/<element>/`; `/sync` smart-pulls upstream, `/promote` smart-pushes local edits back upstream (both directory-mirror → installed into consumers).
 
 ## 0.5.0 — 2026-07-09
 

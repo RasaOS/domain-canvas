@@ -1,5 +1,11 @@
 # Changelog — rasa.orchestrator.canvas
 
+## 0.5.0 — 2026-07-09
+
+### Folded to `rasa.domain.canvas` (canon SA-023)
+
+- The `orchestrator` kind was folded into `tenant`; this vertical-builder Element becomes a domain. Renamed rasa.orchestrator.canvas → rasa.domain.canvas; folder orchestrator-canvas → domain-canvas. Content re-role is a follow-up.
+
 ## 0.4.0 — 2026-07-08
 
 The enforcement layer. The law is now machine-checked.

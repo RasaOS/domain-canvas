@@ -5,6 +5,11 @@ Curated, append-only record of meaningful project actions (per
 
 ## 2026-07-09
 
+- 📦 **TASK-006 shipped** — dot-dir reconciliation decided (user): keep
+  `.rasaos/apps/` (matches the live shell @ `a5f6ff1`); the platform-naming
+  question drafted for canon
+  (docs/canon-drafts/SA-0XX-tenant-app-state-directory.md, rides TASK-007).
+  Docs-only; receipt: commit SHA in the closing report.
 - 📦 **TASK-002 shipped** — the SA-023 re-role: domain identity on every
   surface (CLAUDE/README/CHANGELOG titles, rasa.json prose + session key,
   KERNEL_ASKS headers); `contract_version` → 1.4.0 (first 1.4.0 declarer in

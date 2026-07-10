@@ -122,9 +122,12 @@ by re-running the audit).
   workspace itself). Detection must be **structural**, not presence-of-`elements/`:
   `.rasa/holding/` present → holding-folder; `tenant.members[]` declared → co-located;
   `elements/` full clones without holding → canon-author.
-- **Naming tension, on the record:** our app tree is `<tenant>/.rasaos/apps/`; canon's
-  hidden dir is `.rasa/` (SA-019). Two dot-dirs in one tenant, unreconciled — either
-  migrate to `.rasa/apps/` or file the naming as a canon question. Tracked in BUILD_ORDER.
+- **Naming tension — RESOLVED for now (TASK-006, user decision 2026-07-09): keep
+  `.rasaos/apps/` and file upstream.** The live shell (`VerticalCanvasPane` @ `a5f6ff1`)
+  bootstraps `.rasaos/apps/<id>`; doctrine stays in agreement with reality, and the
+  platform-level naming question goes to canon as a draft
+  (`docs/canon-drafts/SA-0XX-tenant-app-state-directory.md`, files via TASK-007). If canon
+  rules `.rasa/apps/`, the element migrates in ONE coordinated pass with the frontend.
 - **Source of the walk:** filesystem today (readable from cwd — §A4); the kernel's
   `GET /v1/elements` registry is the cleaner future source (§A7) and `PUT /v1/fs` the
   deterministic file surface. The audit MUST degrade to a filesystem walk when the kernel

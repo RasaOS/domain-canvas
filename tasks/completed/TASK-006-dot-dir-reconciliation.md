@@ -1,8 +1,18 @@
 ---
 id: TASK-006
 category: spec
-status: backlog
+status: completed
 ---
+
+> **DECISION (user, 2026-07-09): branch (b) — keep `.rasaos/apps/`, file
+> upstream.** Rationale: the live shell (`VerticalCanvasPane` @ `a5f6ff1`)
+> bootstraps `.rasaos/apps/<id>`; migrating now would open a doctrine/shell
+> divergence window (the class of bug HOTFIX-001 just closed), and the naming
+> is platform-owned (kernel resolves the cwd, shell bootstraps it) — per the
+> kernel-heavy principle the call belongs to canon. Draft filed:
+> `docs/canon-drafts/SA-0XX-tenant-app-state-directory.md` (rides TASK-007's
+> canon batch). Decision recorded in binding-model §3. If canon rules
+> `.rasa/apps/`, migrate in one coordinated pass with the frontend.
 
 # TASK-006: Reconcile `.rasaos/` vs canon `.rasa/` (decide + migrate or file upstream)
 
@@ -56,10 +66,12 @@ cheap NOW (no production tenants); it only gets more expensive.
 
 ## Acceptance criteria
 
-- [ ] Exactly one convention documented everywhere;
-      `grep -r "\.rasaos" content/ CLAUDE.md rasa.json` empty (if migrated) or
-      the canon task filed + linked (if kept).
-- [ ] check-doctrine GREEN.
+- [x] Exactly one convention documented everywhere;
+      the canon task filed + linked (branch (b) kept: draft at
+      `docs/canon-drafts/SA-0XX-tenant-app-state-directory.md`, linked from
+      binding-model §3; `.rasaos/apps/` remains the one documented convention,
+      matching the live shell).
+- [x] check-doctrine GREEN.
 
 ## Verification plan (per the done-gate)
 
@@ -86,11 +98,13 @@ cheap NOW (no production tenants); it only gets more expensive.
 
 ## Self-review checklist
 
-- [ ] I followed the execution order in the spec.
-- [ ] Every acceptance criterion is met and individually verified.
-- [ ] I verified each step, not just the end state.
-- [ ] The done-gate passes (every gate in `.claude/done-gate.md`).
-- [ ] I didn't touch artifacts outside "Artifacts expected to change".
+- [x] I followed the execution order in the spec (step 1 asked; branch (b)
+      needed no CLAUDE.md/content/ edits — docs-only).
+- [x] Every acceptance criterion is met and individually verified.
+- [x] I verified each step, not just the end state.
+- [x] The done-gate passes (every gate in `.claude/done-gate.md`).
+- [x] I didn't touch artifacts outside "Artifacts expected to change" (the
+      (b) branch touched only the canon draft + binding-model note — a subset).
 
 ### Dependencies
 

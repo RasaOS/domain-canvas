@@ -5,7 +5,8 @@
 **Companion:** `docs/design/ui-engine-and-architecture.md` (the render/UI engine, design
 system, and per-layer engine choices). This doc is the *data*/binding half; that doc is the
 *render* half. Note: bound UIs render **only** through the frozen declarative component set
-(tables/lists/forms/kpis/nav) — there is no HTML-artifact rendering path (see that doc §2.1).
+(tables/lists/forms/kpis/nav); custom visuals/3D go through the sandboxed `html-embed`
+escape region — live in the shell @ `a5f6ff1` (see that doc §2.1/§2.1a).
 **Fold targets once ratified:** `content/APP_MODEL.md` (the store + `bindings[]` +
 `context.json`), `content/PROCESSES.md` (the `AUDIT` process + provision/bind steps),
 `content/BUILDER.md` (the three-modes doctrine), `content/KERNEL_ASKS.md` (asks #11–#12),
@@ -97,7 +98,7 @@ by re-running the audit).
   ],
   "modules": [
     { "name": "rasa.module.tasks", "path": "../../../elements/module-tasks",
-      "version": "0.1.1", "parent_kind": ["domain", "tenant"],
+      "version": "0.1.3", "parent_kind": ["domain", "tenant"],
       "collections": [
         { "id": "tasks", "dir": "tasks", "shape": "folder-of-records",
           "record": { "file_glob": "TASK-*.md",
@@ -468,7 +469,7 @@ WORKING = authored into v1.4.0 (IN PROGRESS); IMPLEMENTED = verified on disk/in 
   files. Platform-level discovery exists: kernel registers each `<mount>/<name>/rasa.json`;
   `GET /v1/elements` returns the registry. *ELEMENT_CONTRACT (grep: sibling/discover/scan);
   kernel routes.* An install-time context index is net-new.
-- **A8 — Kernel real-time reality (read from kernel v0.27.0 code).**
+- **A8 — Kernel real-time reality (read from kernel v0.27.0 code; re-confirmed @ v0.32.0).**
   - File-watch **IMPLEMENTED but unbridged**: `gateway/internal/filewatch.go` (fsnotify at
     boot) → `events.files.*` → SSE firehose only; no file→canvas bridge (searched
     `file.(created|modified|removed|saved)`, `canvas.*file` — none).

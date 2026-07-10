@@ -32,6 +32,7 @@ Checks (FAIL = red, blocks publish; WARN = advisory):
 Exit 0 = GREEN (warnings allowed), 1 = RED, 2 = usage error.
 """
 import json
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -42,7 +43,8 @@ from _contract import KERNEL_ALLOWLIST, SHELL_RENDERED
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-EMIT = re.compile(r"rasa\s*\.\s*emit\s*\(\s*['\"]([^'\"]+)['\"]")
+EMIT = re.compile(r"rasa\s*\.\s*emit\s*\(\s*['\"`]([^'\"`]+)['\"`]")
+EMIT_CALL = re.compile(r"rasa\s*\.\s*emit\s*\(")
 
 LAYOUT_WARN, LAYOUT_FAIL = 28 * 1024, 32 * 1024
 ARTIFACT_WARN, ARTIFACT_FAIL = 10 * 1024, 16 * 1024
@@ -66,6 +68,16 @@ def load_json(path):
         return None
 
 
+def escapes_root(app_rel_path, tenant_root_rel):
+    """True if app_rel_path (relative to the app dir) resolves OUTSIDE the
+    tenant root (also app-relative). Lexical + deep-anchored so realistic
+    '..' counts don't clamp at filesystem root."""
+    anchor = "/" + "/".join(f"d{i}" for i in range(24)) + "/app"
+    root = posixpath.normpath(posixpath.join(anchor, str(tenant_root_rel)))
+    target = posixpath.normpath(posixpath.join(anchor, str(app_rel_path)))
+    return not (target == root or target.startswith(root + "/"))
+
+
 def screen_actions(doc, where):
     """Every action this layout can emit — mirrors the shell's emission grammar.
 
@@ -76,8 +88,11 @@ def screen_actions(doc, where):
     """
     actions = set()
     for region in doc.get("regions") or []:
+        if not isinstance(region, dict):
+            continue
         comp = region.get("component")
-        props = region.get("props") or {}
+        p = region.get("props")
+        props = p if isinstance(p, dict) else {}
         rid = region.get("id", "?")
         if comp == "button-row":
             for b in props.get("buttons") or []:
@@ -85,10 +100,10 @@ def screen_actions(doc, where):
                     continue
                 if b.get("intent"):
                     actions.add(str(b["intent"]))
-                elif b.get("id"):
+                else:  # the shell emits 'on_click' for ANY intent-less button
                     actions.add("on_click")
-                    warn(f"{where}#{rid}: button '{b['id']}' has no intent — the shell "
-                         f"emits ambiguous 'on_click' (set intent to the action name)")
+                    warn(f"{where}#{rid}: button '{b.get('id', '?')}' has no intent — "
+                         f"the shell emits 'on_click' (set intent to the action name)")
         if comp in ("card-strip", "card-list") and props.get("on_card_click"):
             actions.add("on_card_click")
         if comp == "form":
@@ -96,7 +111,11 @@ def screen_actions(doc, where):
         if comp != "form" and props.get("on_click"):
             actions.add("on_click")
         if comp == "code-block" and props.get("render"):
-            actions |= set(EMIT.findall(props.get("code", "")))
+            code = str(props.get("code", ""))
+            actions |= set(EMIT.findall(code))
+            if len(EMIT_CALL.findall(code)) > len(EMIT.findall(code)):
+                warn(f"{where}#{rid}: artifact has a rasa.emit() with a non-literal "
+                     f"action — register those actions manually (check-app can't see them)")
     return actions
 
 
@@ -159,6 +178,9 @@ def check_screen_file(path, sid, ids):
     doc = load_json(path)
     if doc is None:
         return set(), set()
+    if not isinstance(doc, dict):
+        fail(f"{path.name}: not a JSON object")
+        return set(), set()
     if doc.get("layout") != "1.0.0":
         warn(f"{path.name}: layout version '{doc.get('layout')}' (expected '1.0.0')")
     scr = doc.get("screen") or {}
@@ -173,6 +195,9 @@ def check_screen_file(path, sid, ids):
 
     rids = []
     for r in regions:
+        if not isinstance(r, dict):
+            fail(f"{path.name}: a region is not an object")
+            continue
         rid = r.get("id")
         if not rid:
             fail(f"{path.name}: region without an id")
@@ -181,7 +206,8 @@ def check_screen_file(path, sid, ids):
             fail(f"{path.name}: duplicate region id '{rid}'")
         rids.append(rid)
         comp = r.get("component")
-        props = r.get("props") or {}
+        _p = r.get("props")
+        props = _p if isinstance(_p, dict) else {}
         if comp not in KERNEL_ALLOWLIST:
             fail(f"{path.name}#{rid}: component '{comp}' is not in the kernel allowlist")
         elif comp not in SHELL_RENDERED:
@@ -286,6 +312,18 @@ def check_bindings(m, ids, screen_regions, context_doc):
         if len(forms) != 1:
             fail(f"app.json#bindings['{bid}']: source must be exactly one of "
                  f"module+collection | tenant | context (got: {forms or 'none'})")
+        else:
+            allowed = {"module": {"module", "collection", "select"},
+                       "tenant": {"tenant"}, "context": {"context"}}[forms[0]]
+            extra = set(src) - allowed
+            if extra:
+                fail(f"app.json#bindings['{bid}']: source has key(s) not valid for a "
+                     f"'{forms[0]}' source: {', '.join(sorted(extra))}")
+        if src.get("tenant") and context_doc is not None:
+            tr = context_doc.get("_tenant_root")
+            if tr and escapes_root(src["tenant"], tr):
+                fail(f"app.json#bindings['{bid}']: source.tenant path '{src['tenant']}' "
+                     f"escapes the tenant root ('{tr}')")
         if src.get("module"):
             if not src.get("collection"):
                 fail(f"app.json#bindings['{bid}']: module source without a collection")
@@ -313,6 +351,8 @@ def check_bindings(m, ids, screen_regions, context_doc):
         sel = src.get("select")
         if sel not in (None, "*"):
             warn(f"app.json#bindings['{bid}']: select '{sel}' — v1 supports only '*'")
+        if b.get("mode") == "provision" and not b.get("provisioned"):
+            fail(f"app.json#bindings['{bid}']: mode 'provision' requires provisioned:true")
     return bids
 
 
@@ -327,11 +367,19 @@ def check_writes(m, bids):
             if not isinstance(w, dict):
                 fail(f"app.json#events['{a}']: writes[] entry is not an object")
                 continue
+            if w.get("binding") and w.get("state"):
+                fail(f"app.json#events['{a}']: writes[] entry has both binding and "
+                     f"state — one target per entry")
+                continue
             if w.get("binding"):
-                if str(w["binding"]) not in bids:
+                bref = str(w["binding"])
+                if bref not in bids:
                     fail(f"app.json#events['{a}']: writes[] names unknown binding '{w['binding']}'")
                 else:
-                    writers.add(str(w["binding"]))
+                    writers.add(bref)
+                    if bids[bref].get("direction") != "read-write":
+                        fail(f"app.json#events['{a}']: writes[] targets binding '{bref}' "
+                             f"which is not read-write")
                 if w.get("op") not in WRITE_OPS:
                     fail(f"app.json#events['{a}']: writes[] op '{w.get('op')}' — "
                          f"must be one of {'|'.join(WRITE_OPS)}")
@@ -431,4 +479,9 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        _rc = main()
+    except Exception as e:  # the publish gate must FAIL cleanly, never traceback
+        fail(f"check-app internal error on malformed input ({type(e).__name__}: {e})")
+        _rc = report()
+    sys.exit(_rc)

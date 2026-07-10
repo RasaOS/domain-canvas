@@ -24,7 +24,9 @@ sandboxed escape region that delivers it — specified precisely enough to imple
 
 ## A. Reality (what exists today — all verified)
 
-- **The shell has NO artifact path and NO sandboxed iframe.** Its only `<iframe>`
+- ⚠️ **[SUPERSEDED for the shell — true only of the pre-`a5f6ff1` checkout this was read
+  against; the shell now ships the full artifact lane. The bullets in §A remain accurate for
+  the KERNEL and CANON, which still lack their halves.]** The shell has NO artifact path and NO sandboxed iframe.** Its only `<iframe>`
   (`app/src/shell/Shell.tsx:110-111`, proxy verticals) is deliberately **same-origin and
   unsandboxed** ("keeps auth + kernel + Vault shared — the moat", `verticals.tsx:16-18`) —
   the *inverse* of what hostile-content artifacts need. The canvas renderer

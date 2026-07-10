@@ -154,8 +154,12 @@ The kernel canvas store is Redis-backed and a container restart can wipe it
   `rasa.emit` scans inside artifacts), nav contract + targets, screen.name
   identity, size budgets, state/data hygiene. RED blocks a publish — see
   PROCESSES.md §gate.
-- The doctrine audits itself: `bin/check-doctrine` keeps BUILDER / APP_MODEL /
-  PROCESSES / COMPONENTS in lockstep and gates every commit to the element.
+- The doctrine audits itself on every commit: `bin/check-doctrine` checks the
+  eight-process canon (names + order across PROCESSES / BUILDER / CLAUDE /
+  rasa.json), the component-list lockstep (COMPONENTS ↔ `bin/_contract.py`),
+  version plumbing, the schema parse, and the fixture gate. It does NOT
+  semantically cross-check the write-order law or the binding modes — those
+  are author discipline, not machine-enforced.
 
 ## Multi-screen — many screens, one canvas (for now)
 

@@ -43,8 +43,9 @@ EMPTY. Author exactly these:
   just the button's identity)
 - **markdown-block** `{content}` — escaped subset only: `#/##/###`, `**bold**`,
   `` `code` ``, `- ` lists, paragraphs (raw HTML is escaped, never rendered)
-- **code-block** `{code}` — plain `<pre>` text; NO syntax highlight, NO
-  render carriage (`render:true` does nothing)
+- **code-block** `{code}` — plain `<pre>` text (omit `render`). With
+  `render:true` the same region renders as the sandboxed artifact carriage
+  instead of code — see §artifact.
 - **media-viewer** `{src}` — renders a safe LINK (http/https only, opens in a
   new tab); it never embeds. data:/javascript: render as inert text.
 

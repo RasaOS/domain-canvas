@@ -1,5 +1,46 @@
 # Changelog — rasa.domain.canvas
 
+## 0.11.0 — 2026-07-09
+
+**Review remediation (TASK-010..013) — the Phase-1 review pass, three
+independent adversarial reviewers + probes, folded back in.** The shipped
+*contract* was sound (golden schema-valid, fixtures RED, happy-path binding
+logic correct); the fixes are at the edges, in the doctrine's own words, and
+in the prose.
+
+- **check-app hardened (TASK-010):** a `try/except` backstop in `main()` means
+  the publish gate can NEVER traceback — any wrong-typed JSON now yields a
+  clean FAIL (completes v0.10.1, which only guarded three sites). New
+  false-negative catches: a `writes[]` against a `read` binding FAILs; an
+  intent-less button now records the `on_click` it emits (so an unregistered
+  action can't slip the gate); `rasa.emit(\`backtick\`)` is seen and dynamic
+  emits are warned; stray `source` keys, non-writable `read-write`, and
+  `mode:"provision"` without `provisioned:true` all FAIL; a `writes[]` entry
+  with both `binding` and `state` FAILs (mirrors the schema `oneOf`); a
+  `source.tenant` path that escapes `_tenant_root` FAILs (traversal guard).
+- **Doctrine correctness (TASK-011):** killed the `render:true` "does nothing"
+  contradiction (COMPONENTS §artifact is the single truth); **unified the
+  write-order law** everywhere to the data-first form
+  (records/state → screen → app.json → canvas_set — APP_MODEL §persistence is
+  authoritative) and removed "never reordered"; defined provision "fit" +
+  the zero/two-fit cases + the read-write-needs-a-writer step; `rasa.json`
+  now lists all eight processes (AUDIT added) and `check-doctrine` scans it
+  for the eight names; softened the "keeps files in lockstep" claim to what
+  the gate actually checks; BOOTSTRAP points at the full manifest required
+  set; the "runs cold" claim reconciled (the procedure runs cold; what it
+  provisions into is whatever fitting module the tenant mounted).
+- **Golden coherence (TASK-012, app 0.4.0):** the KPI now shows the
+  follow-up-tasks count that matches its read-write tasks binding; dropped the
+  redundant `data_sources` row (the binding is the single source); one
+  consistent tenant-relative path + an illustrative-placeholder note;
+  module-tasks version aligned to 0.1.3.
+- **Docs/handoff freshness (TASK-013):** the frontend F1 handoff — which told
+  the team to build the already-shipped `HtmlEmbed` — rewritten to "shell half
+  DONE @ `a5f6ff1`; remaining = kernel enum + confirm CSP deltas" and the
+  delivered copy re-synced; ui-engine + html-embed-spec + binding-model stale
+  "artifacts absent in shell" claims corrected/annotated; BUILD_ORDER marked
+  shipped; kernel version labels re-confirmed @ v0.32.0.
+
 ## 0.10.1 — 2026-07-09
 
 **Bug fix (TASK-009, found in the Phase-1 review pass): `check-app` no longer
@@ -30,8 +71,11 @@ records intact (tenant data owned by their modules — noted in the app
 CHANGELOG, never bulk-deleted). Process canon unchanged (eight named
 processes — provision is steps inside BUILD/ADD_SCREEN, not a ninth).
 BUILDER at 7.2KB, under the terseness budget. The user's founding trace
-("create a goalkeeping session about X and Y") now runs cold from
-BUILDER + PROCESSES + the context index + the binding registry.
+("create a goalkeeping session about X and Y") is now a fully-specified,
+gated procedure across BUILDER + PROCESSES + the context index + the binding
+registry — a fresh session runs it cold. (What it provisions *into* is
+whatever fitting `writable` module the tenant has mounted; provision handles
+the zero-fit and multi-fit cases explicitly, see BUILDER §binding-modes.)
 
 ## 0.9.0 — 2026-07-09
 

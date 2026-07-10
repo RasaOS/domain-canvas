@@ -10,12 +10,12 @@
     {
       "id": "kpis",
       "component": "kpi-tile",
-      "props": { "value": "12", "label": "Open orders", "delta": "+3 this week" }
+      "props": { "value": "3", "label": "Open follow-up tasks", "delta": "+1 today" }
     },
     {
       "id": "notes",
       "component": "markdown-block",
-      "props": { "content": "**Orders Desk** — numbers derive from `data/orders.csv` (see `data/orders-summary.json` for the derivation stamp)." }
+      "props": { "content": "**Orders Desk** — the Orders table binds (read) to the tenant's `data/orders.csv`; this KPI binds (read-write) to the `tasks` collection of `rasa.module.tasks` and counts open follow-ups (\"Log follow-up task\" creates one). _Example paths are illustrative — this golden app is not instantiated in a real tenant._" }
     }
   ]
 }

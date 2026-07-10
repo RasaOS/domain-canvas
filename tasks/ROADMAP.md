@@ -34,3 +34,7 @@ screens cold — with the design docs and the doctrine agreeing everywhere.
 - TASK-007 — Draft the canon amendments (html-embed FE-022; track SA-026/027/028; provides.collections[])
 - TASK-008 — Relay + track the external handoffs (kernel K1–K3, frontend F1–F6)
 - TASK-009 — Bug: check-app tracebacks on wrong-typed JSON (fail cleanly) [review pass]
+- TASK-010 — Bug: harden check-app — crash backstop + false-negatives + guards [review pass]
+- TASK-011 — Bug: doctrine correctness — render:true, write-order law, provision, lockstep [review pass]
+- TASK-012 — Bug: golden example coherence — binding⇄content, dedupe, paths [review pass]
+- TASK-013 — Bug: docs + handoff freshness — F1, ui-engine, BUILD_ORDER, version labels [review pass]

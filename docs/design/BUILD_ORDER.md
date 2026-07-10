@@ -19,6 +19,14 @@ Updated 2026-07-09.
 
 ## Element work (this repo), in order
 
+> **STATUS 2026-07-09 — Phase 1 SHIPPED.** Items 1–6 done (v0.6.0 truth-pass ·
+> v0.7.0 SA-023 re-role · v0.8.0 context/AUDIT · v0.9.0 bindings · v0.10.0
+> three-modes; + v0.6.1 artifact-lane hotfix · v0.10.1 crash-fix · v0.11.0
+> review remediation). Item 7 RESOLVED (keep `.rasaos/apps/`; canon draft
+> filed). Item 8 DRAFTED (`docs/canon-drafts/`, awaiting the canon-workspace
+> filing). The table below is the original plan, kept for reference — the
+> authoritative shipped record is `CHANGELOG.md` + `tasks/AUDIT.md`.
+
 | # | Item | Blocked by |
 |---|---|---|
 | 1 | **Ship the truth-pass**: version bump (v0.6.0), CHANGELOG entry, commit (check-doctrine green) | nothing — next commit |

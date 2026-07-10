@@ -76,7 +76,7 @@ already versioned (every `set` bumps `version`) and keeps one last-known-good
    any version N), keep a bounded ring of the last N layouts per canvas +
    `revert_to(version)`. Pairs with ask #7's surface.
 
-## Data binding + reactivity (filed 2026-07-09; verified against kernel v0.27.0 source)
+## Data binding + reactivity (filed 2026-07-09; verified against kernel v0.27.0 source; re-confirmed @ v0.32.0)
 
 The binding objective: a canvas region bound to tenant/module files updates
 when those files change — by ANY writer, not just this session. What already

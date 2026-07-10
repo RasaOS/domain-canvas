@@ -13,29 +13,29 @@ shapes exactly and treats your 11-component subset as the whole authoring vocabu
 
 ## F1 — the `html-embed` component (the priority item: 3D/animation)
 
-3D + animation in canvas pages is a hard product requirement. Today there is no path: no
-iframe/srcdoc arm in `RegionBody` (`components.tsx:37-69`), `code-block` renders `<pre>`
-text only, `media-viewer` never embeds. The full implementable spec is in the domain-canvas
-repo: **`docs/design/html-embed-spec.md`** — capsule:
+3D + animation in canvas pages is a hard product requirement — and **the shell already
+ships it** at current HEAD (`a5f6ff1`, "v0.5.0 — canvas-vertical lane + artifact studio").
+We verified `app/src/canvas/components.tsx` line-by-line: the `html-embed` arm + the
+`code-block{render:true}` carriage, and the full `HtmlEmbed` component —
+`sandbox="allow-scripts"` (opaque origin), a srcDoc-injected CSP with `connect-src 'none'`
++ the four CDNs, the `window.rasa.emit` postMessage bridge with the `e.source` / `__rasa`
+checks, and a fixed `height`. It is independently convergent with
+`docs/design/html-embed-spec.md` §B — **there is nothing to build.** (This handoff's
+original F1 said "there is no path, build it" — that read a pre-`a5f6ff1` checkout; it is
+corrected here. See our postmortem `docs/postmortems/2026-07-09-artifact-lane-overcorrection.md`.)
 
-- New switch arm + `HtmlEmbed` component (~70–110 lines): wrap `props.html` in a `srcDoc`
-  (inject a CSP `<meta>` + the `window.rasa` bootstrap as the first `<head>` children),
-  render `<iframe sandbox="allow-scripts" …>` — **never `allow-same-origin`** (opaque
-  origin is the containment), fixed `height` prop (no auto-resize v1 — protects the
-  `CanvasPane.report()` measure loop).
-- Injected CSP thesis: **`connect-src 'none'`** (scripts run; nothing phones home);
-  `script-src` = the four CDNs (cdnjs/jsdelivr/unpkg/esm.sh) + `'unsafe-inline'
-  'unsafe-eval'`; `img-src data: blob:` only.
-- Bridge: bootstrap `window.rasa.emit(action,payload)` → `postMessage`; parent listener
-  **must check `e.source === iframeRef.current?.contentWindow`** (origin is `null` under
-  the sandbox) → route into the existing `interact` pipe (`CanvasPane.tsx:35-49`) →
-  `sendUiEvent`.
-- Add `html-embed` to your rendered-set docs when it lands; the kernel-side allowlist +
-  schema enum change is filed with the kernel team (their K1).
+**Remaining (small):**
+- When the kernel enum lands (their **K1** — `html-embed` in the canvas allowlist + the
+  `rasa.layout.v1` schema), add `html-embed` to your rendered-set docs so the direct form
+  is first-class. Today it rides the `code-block{render:true}` carriage, which is
+  kernel-legal — so the capability works now.
+- Please **confirm the CSP/height deltas** we noted vs our spec (see the `html-embed-spec.md`
+  status header): your `style-src` omits `esm.sh`; no `base-uri`/`form-action` directives;
+  an empty document → warn tile. Intentional?
 
-**Acceptance:** a self-contained three.js scene from esm.sh renders sandboxed; a hostile
-document (fetch/XHR attempt, parent-DOM access, top-nav) is contained; `rasa.emit` arrives
-as a normal ui_event turn.
+**Acceptance (already met):** a self-contained three.js scene from esm.sh renders sandboxed;
+a hostile document (fetch/XHR, parent-DOM, top-nav) is contained; `rasa.emit` arrives as a
+ui_event turn.
 
 ## F2 — emission-grammar confirmation (5 minutes, please)
 

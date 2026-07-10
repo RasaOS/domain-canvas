@@ -5,6 +5,19 @@ Curated, append-only record of meaningful project actions (per
 
 ## 2026-07-09
 
+- 📦 **TASK-010..013 shipped as v0.11.0 — Phase-1 review remediation.** Three
+  independent adversarial reviewers (enforcement/doctrine/docs) + probes
+  surfaced ~24 findings; all fixed: check-app crash-backstop + 7
+  false-negative/guard closures (010); doctrine correctness incl. the
+  render:true contradiction + the write-order law unification + provision
+  fit/writer rules + rasa.json 8-process scan (011); golden coherence (012,
+  app 0.4.0); docs/handoff freshness incl. the F1 "build-already-shipped-code"
+  fix + re-delivered copy (013). Receipt: tag v0.11.0.
+- ⚠ **Review pass complete** — the gate was GREEN throughout yet hid a
+  CRITICAL doctrine self-contradiction, a HIGH write-order-law split, and
+  real enforcement false-negatives; captured why the gate couldn't see them
+  and hardened it (rasa.json process scan; check-app backstop + false-negative
+  catches).
 - 📦 **TASK-009 shipped** — bug fix (found in the Phase-1 review pass):
   check-app tracebacked on wrong-typed JSON (context.json/app.json/binding
   source); three isinstance guards → clean FAILs, zero tracebacks. Receipt:

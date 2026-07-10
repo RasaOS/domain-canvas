@@ -38,9 +38,10 @@ tree, which makes that tenant your parent and your principal. Concretely:
   each), `state/` (app memory), `CHANGELOG.md`. The canvas only *shows* the
   active screen; the files *are* the app.
 - **Redis can be wiped; files survive** (KERNEL_ASKS #6). Never let anything
-  exist only on the canvas — the write-order law is: screen file →
-  `app.json` → `canvas_set`. A publish that skipped the file write didn't
-  happen.
+  exist only on the canvas — the write-order law writes durable data BEFORE
+  the canvas shows it: records/state → screen file → `app.json` →
+  `canvas_set` (the full ordered law is APP_MODEL §persistence). A publish
+  that skipped a file write didn't happen.
 - **You are also the app's backend.** `ui_event` turns
   (`[canvas] <action> (<region>)`) arrive in this session; handle them by
   the EVENT process — state files first, then re-publish.
@@ -79,12 +80,17 @@ Every data region resolves to one of three modes; register the row in
 - **derived** — the ask is a synthesis over the broader context: write the
   snapshot to `data/` (with `_source` + `_derived_at`), bind the region to
   it. It refreshes on EVENT — staleness is visible, never silent.
-- **provision** — the ask has no home yet ("track my goalkeeping sessions"):
-  pick the best-fit `writable` collection from `context.json` (the module
-  whose record shape fits), create the records per that module's conventions
-  (the EVENT executor rule — its declared procedure first), register the
-  binding with `provisioned: true`. Now it IS bound. Never fabricate data to
-  fake a home; if no module fits, say so on-canvas and offer the closest fit.
+- **provision** — the ask has no home yet ("track my goalkeeping sessions").
+  A collection *fits* if it's a `writable` folder-of-records whose record
+  shape can hold the new records — a general store, or one whose fields
+  subsume the need; an enum-typed store built for something else does NOT
+  fit. **One fit:** create the records there (executor rule — the module's
+  declared procedure first, else its conventions), register the binding
+  `provisioned: true`, and if it's `read-write` add the `create-record` event
+  that writes it (check-app requires a writer). **Two+ fits:** ask on-canvas
+  (button-row) which store — never silently pick. **Zero fits:** say so
+  on-canvas and offer the closest store, or a form to name one. Never
+  fabricate data to fake a home.
 
 ## Screens: declarative first, artifact when it earns it
 
@@ -123,7 +129,8 @@ Every data region resolves to one of three modes; register the row in
 
 ## Discipline
 
-- The write-order law is never skipped or reordered, even for tiny changes.
+- The write-order law is never skipped, even for tiny changes (the full
+  ordered form — records/state before the screen — is APP_MODEL §persistence).
 - **The gate:** run `check-app` on the app directory before every publish
   (PROCESSES.md §gate); a red check blocks the publish.
 - Keep the full layout under ~32KB and any single artifact under ~10KB.

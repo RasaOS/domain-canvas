@@ -48,7 +48,7 @@ them straight:
 | Navigation | `nav` component (data-driven, active-from-screen) | `button-row` only; nav is an *authoring convention* faked per-turn |
 | Conversation | **`ai-rail` mandatory** on primary screens (FE-005) | chat lives in the shell split, no `ai-rail` component |
 | Theming | **CSS variables** from theme JSON (`--color-substrate/essence/accent-*`, `--font-*`, `--spacing-unit`) | Tailwind-**baked** classes; no inheritable `--rasa-*` vars |
-| Artifacts / HTML | **none** — bounded set is the law | **none** — no iframe/sandbox/bridge |
+| Artifacts / HTML | **none** — bounded set is the law | **`html-embed`** artifact lane — sandboxed iframe + injected CSP + `rasa.emit` bridge, LIVE @ `a5f6ff1` (rides the `code-block{render:true}` carriage until the kernel enum lands) |
 | Validation | **11-step validator** before publish (FE-020) | client-side defensive readers + error tiles |
 | Real-time | (unspecified in doc 10) | **SSE both ways, robust** (`/v1/canvas/{id}/watch` + command stream, version-dedup, gap-recovery) |
 
@@ -73,7 +73,7 @@ Two governing principles (professional-engineering directives):
 
 | Layer | Engine we use | Rejected alternative | Status |
 |---|---|---|---|
-| **UI / render** | the **frozen declarative component set** (11 today → 18–21 canon), styled by Brand-Kit tokens; absolute `frame` for dashboards | hand-rolled HTML / sandboxed artifacts (absent in shell **and** anti-canon §2.1) | 11 buildable now |
+| **UI / render** | the **frozen declarative component set** (11 today → 18–21 canon), styled by Brand-Kit tokens; absolute `frame` for dashboards; the `html-embed` escape region for custom visuals (§2.1a) | hand-rolled DOM (the sandboxed `html-embed` region covers custom visuals instead) | live now |
 | **Custom visuals / 3D & animation** | the **sandboxed artifact lane** — `HtmlEmbed` via the `code-block{render:true}` carriage (three.js/WebGL/CSS-anim, `window.rasa.emit` bridge) — **LIVE in the shell** (frontend-rasaos @ `a5f6ff1`; HOTFIX-001 restored the doctrine) | hand-rolled DOM; waiting for "someday" | **available today**; direct `html-embed` name pends kernel enum (K1) |
 | **Data / storage** | the **record-modules** (`module-research/tasks/notes/…`) + kernel `PUT /v1/fs` | a canvas-owned datastore / Redis-as-truth | buildable now |
 | **Data binding** | the **binding registry** (`app.json#bindings[]`) + `context.json` audit — see `binding-model.md` | ad-hoc per-screen `data_sources` | design-stage |

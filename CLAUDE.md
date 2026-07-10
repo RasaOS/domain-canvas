@@ -40,15 +40,15 @@ app they manage ("Studio" verticals). Its entire role:
 
 - **Files are truth; the canvas is a projection.** Redis can be wiped
   (KERNEL_ASKS #6); the app directory (`app.json` + `screens/` + `state/`)
-  survives. Write-order law: screen file → `app.json` → `canvas_set` —
-  never reversed, never partial.
+  survives. Write-order law: records/state → screen file → `app.json` →
+  `canvas_set` (full ordered form: APP_MODEL §persistence) — never partial.
 - **One app = one session = one canvas** (today). `app.json` carries
   exhaustive `screens[]` + `events[]` registries — every screen file
   registered, every emittable action declared with its promised handling.
   The registry is the contract; EVENT executes it exactly.
 - **Every turn runs exactly one named process:** BOOTSTRAP, AUDIT, BUILD,
-  EVENT, SWITCH_SCREEN, ADD_SCREEN, REBUILD, RETIRE (PROCESSES.md). AUDIT
-  writes `context.json` — the per-install index of what exists to bind to.
+  EVENT, SWITCH_SCREEN, ADD_SCREEN, REBUILD, RETIRE (PROCESSES.md — eight).
+  AUDIT writes `context.json` — the per-install index of what to bind to.
 - **Three version clocks, never conflated:** canvas version (kernel's),
   `app.json#version` (the app's semver), element VERSION (this repo's).
 - **The law is machine-checked:** `bin/check-app` gates every publish

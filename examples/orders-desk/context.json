@@ -9,7 +9,7 @@
     {
       "name": "rasa.module.tasks",
       "path": "../../../elements/module-tasks",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "parent_kind": ["domain", "tenant"],
       "collections": [
         {
@@ -31,6 +31,6 @@
     }
   ],
   "tenant_data": [
-    { "path": "../../data/orders.csv", "kind": "csv", "purpose": "orders table" }
+    { "path": "../../../data/orders.csv", "kind": "csv", "purpose": "orders table" }
   ]
 }

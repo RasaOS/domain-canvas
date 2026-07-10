@@ -1,8 +1,9 @@
 # Processes — the named procedures
 
 Every turn runs exactly one of these. Steps are ordered; the write-order law
-(screen file → app.json → canvas_set) is never skipped or reordered. Every
-process ends with the one-sentence reply.
+(records/state → screen file → app.json → canvas_set — the full ordered form
+is APP_MODEL §persistence) is never skipped. Every process ends with the
+one-sentence reply.
 
 ## The gate — check before you publish
 
@@ -25,9 +26,10 @@ Trigger: this directory has no `app.json`.
 
 1. Run AUDIT (below) — it writes `context.json`, the index of what exists to
    bind to. Note what the addressing turn says this app is for.
-2. Write the skeleton: `app.json` (id from the directory name, one `home`
-   screen marked default, version `0.1.0`), `CHANGELOG.md`, `screens/`,
-   `state/`.
+2. Write the skeleton: `app.json` per APP_MODEL's full required set (`app`,
+   `id` from the directory name, `name`, `created`, `version` `0.1.0`,
+   `screens:[home default]`, `active_screen:"home"`, `events:[]`), plus
+   `CHANGELOG.md`, `screens/`, `state/`.
 3. Author `screens/home.json` from real tenant data — a working surface, not
    a splash page. If no data is discoverable yet: an honest markdown-block
    saying what the app is, plus a form asking for the first data source.
@@ -66,13 +68,12 @@ element's `schemas/`).
 
 1. `canvas_get`; read `app.json`, `context.json`, the affected screen
    file(s), and any data the request touches.
-2. Resolve the request's data to a binding mode (BUILDER §binding-modes):
-   **bound** → register/reuse the `bindings[]` row; **derived** → write the
-   `data/` snapshot (`_source` + `_derived_at`) and bind to it;
-   **provision** → pick the best-fit `writable` collection from
-   `context.json`, create the records (write-order step 1 — the module's
-   declared procedure first, else its conventions), register the binding
-   with `provisioned: true`.
+2. Resolve the request's data to a binding mode per **BUILDER §binding-modes**
+   (that section is the definitive recipe): **bound** → register/reuse the
+   `bindings[]` row; **derived** → snapshot to `data/` and bind to it;
+   **provision** → run the provision recipe (records created first, as
+   write-order step 1; add the writer event if read-write), then register the
+   binding.
 3. Author the change in the screen file(s). Any new action gets its
    `app.json#events` row (+ `writes[]` if it mutates) in the same edit.
 4. Bump `app.json#version` (minor for screen shape, patch for data) and add

@@ -76,11 +76,14 @@ def check_processes(docs):
         fail(f"PROCESSES.md: processes are {headers} — the canon is {PROCESSES} (names AND order)")
     builder = docs.get("BUILDER.md") or ""
     claude = read(ROOT / "CLAUDE.md") or ""
+    rasa = read(ROOT / "rasa.json") or ""
     for name in PROCESSES:
         if name not in builder:
             fail(f"BUILDER.md: process '{name}' never mentioned — the loop must route to every process")
         if name not in claude:
             fail(f"CLAUDE.md: process '{name}' never mentioned — the capsule must name every process")
+        if name not in rasa:
+            fail(f"rasa.json: process '{name}' never mentioned — the rasa.app_model prose must name every process")
 
 
 def check_component_lockstep(docs):

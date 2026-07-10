@@ -2,7 +2,7 @@
 
 **From:** `rasa.domain.canvas` (elements/domain-canvas), 2026-07-09.
 **Self-contained** — written to be read in a kernel session without the originating
-conversation. Findings below were verified against **kernel v0.27.0 source** (file:line
+conversation. Findings below were verified against **kernel v0.27.0 source** (substance re-confirmed @ v0.32.0) (file:line
 cited); design context lives in domain-canvas `docs/design/{binding-model,
 ui-engine-and-architecture,html-embed-spec}.md`.
 

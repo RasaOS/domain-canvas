@@ -33,3 +33,4 @@ screens cold — with the design docs and the doctrine agreeing everywhere.
 - TASK-006 — Reconcile `.rasaos/` vs canon `.rasa/` (decide + migrate or file upstream)
 - TASK-007 — Draft the canon amendments (html-embed FE-022; track SA-026/027/028; provides.collections[])
 - TASK-008 — Relay + track the external handoffs (kernel K1–K3, frontend F1–F6)
+- TASK-009 — Bug: check-app tracebacks on wrong-typed JSON (fail cleanly) [review pass]

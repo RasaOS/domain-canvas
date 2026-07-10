@@ -1,5 +1,18 @@
 # Changelog — rasa.domain.canvas
 
+## 0.10.1 — 2026-07-09
+
+**Bug fix (TASK-009, found in the Phase-1 review pass): `check-app` no longer
+tracebacks on wrong-typed JSON.** The publish gate called `.get()` on parsed
+JSON without a type guard, so a parseable-but-non-object `context.json`,
+`app.json`, or binding `source` crashed with an `AttributeError` instead of
+failing cleanly. Three `isinstance(..., dict)` guards → clean `FAIL … not a
+JSON object` / `source must be an object`, exit 1, no traceback. Deep
+per-field type validation remains the published schema's job (kernel-side,
+KERNEL_ASKS #10); this closes the reachable top-level/source crash surface
+only. Verified: all three malformed shapes FAIL cleanly with zero tracebacks;
+golden GREEN, five fixtures RED.
+
 ## 0.10.0 — 2026-07-09
 
 **The three binding modes land (TASK-005) — provision-then-bind is doctrine.**

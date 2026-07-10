@@ -5,6 +5,10 @@ Curated, append-only record of meaningful project actions (per
 
 ## 2026-07-09
 
+- 📦 **TASK-009 shipped** — bug fix (found in the Phase-1 review pass):
+  check-app tracebacked on wrong-typed JSON (context.json/app.json/binding
+  source); three isinstance guards → clean FAILs, zero tracebacks. Receipt:
+  tag v0.10.1.
 - 📦 **TASK-007 shipped** — canon drafts authored (docs/canon-drafts/):
   DOC-10-edit-html-embed-escape-region (FE-022), SA-0XX-module-collections-
   declaration (provides.collections[] + write_via), + the canvas-SA tracking

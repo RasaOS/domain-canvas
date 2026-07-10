@@ -234,6 +234,9 @@ def check_context(app):
     doc = load_json(p)
     if doc is None:
         return None
+    if not isinstance(doc, dict):
+        fail("context.json: not a JSON object")
+        return None
     if doc.get("_schema") != "rasa.canvas.context.v1":
         fail(f"context.json: _schema '{doc.get('_schema')}' — must be 'rasa.canvas.context.v1'")
     if not doc.get("_audited_at"):
@@ -275,7 +278,10 @@ def check_bindings(m, ids, screen_regions, context_doc):
             fail(f"app.json#bindings['{bid}']: screen '{scr}' is not a registered screen")
         elif reg not in screen_regions.get(scr, set()):
             fail(f"app.json#bindings['{bid}']: region '{reg}' not found on screen '{scr}'")
-        src = b.get("source") or {}
+        src = b.get("source")
+        if not isinstance(src, dict):
+            fail(f"app.json#bindings['{bid}']: source must be an object")
+            continue
         forms = [k for k in ("module", "tenant", "context") if src.get(k)]
         if len(forms) != 1:
             fail(f"app.json#bindings['{bid}']: source must be exactly one of "
@@ -374,6 +380,9 @@ def main():
         return report()
     m = load_json(manifest_path)
     if m is None:
+        return report()
+    if not isinstance(m, dict):
+        fail("app.json: not a JSON object")
         return report()
 
     check_manifest(m)

@@ -24,6 +24,7 @@ Checks (FAIL = red, blocks publish; WARN = advisory):
 Exit 0 = GREEN (warnings allowed), 1 = RED, 2 = usage error.
 """
 import json
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -123,6 +124,32 @@ def check_manifest(m):
         fail(f"app.json: version '{m['version']}' is not semver")
     if "created" in m and not DATE.match(str(m["created"])):
         fail(f"app.json: created '{m['created']}' is not YYYY-MM-DD")
+
+
+# The app dir sits at <tenant>/.rasaos/apps/<app-id>/ — 3 levels below the tenant
+# root, so a data_source may ascend at most 3 '..' before it leaves the tenant.
+TENANT_DEPTH = 3
+
+
+def check_data_sources(m):
+    """data_sources[].path must be tenant-relative and stay inside the tenant."""
+    for ds in m.get("data_sources") or []:
+        if not isinstance(ds, dict) or not ds.get("path"):
+            fail("app.json#data_sources: row without a path")
+            continue
+        path = str(ds["path"])
+        if path.startswith("/") or (len(path) > 1 and path[1] == ":"):
+            fail(f"app.json#data_sources: '{path}' is absolute — must be tenant-relative")
+            continue
+        up = 0
+        for part in posixpath.normpath(path).split("/"):
+            if part == "..":
+                up += 1
+            else:
+                break
+        if up > TENANT_DEPTH:
+            fail(f"app.json#data_sources: '{path}' escapes the tenant root "
+                 f"(ascends >{TENANT_DEPTH} levels from the app dir)")
 
 
 def check_screen_registry(m):
@@ -307,6 +334,7 @@ def main():
         return report()
 
     check_manifest(m)
+    check_data_sources(m)
     ids = check_screen_registry(m)
     reg = check_events_registry(m)
 

@@ -13,14 +13,18 @@ canvas-local px; overlap legal; z = document order).
 
 ## Kernel allowlist (canvas_set validates component names)
 
-`card-strip · inbox-list · matter-detail · doc-viewer · table · chart ·
-kanban · timeline · kpi-tile · filter-bar · nav · modal · form ·
-calendar-grid · media-viewer · code-block · ai-rail · map ·
-markdown-block · button-row · card-list`
+`card-strip · table · form · chart · code-block · media-viewer · kpi-tile ·
+timeline · markdown-block · button-row · card-list · html-embed`
 
-The RasaOS shell currently RENDERS this subset (the rest error-tile —
-prefer these): `table · card-strip · card-list · form · chart · code-block ·
-media-viewer · kpi-tile · timeline · markdown-block · button-row`.
+These twelve are the operational allowlist `canvas_set` validates against
+(kernel `allowlist.ts`). A layout naming anything else is a **hard validation
+error at the write boundary — rejected, not rendered as an error tile.** The
+published `rasa.layout.v1` schema enum is broader (the full 22-name doc-10
+library); narrowing to these twelve is the kernel allowlist's job (canon Spec
+§56). The RasaOS shell RENDERS this subset — identical to the allowlist above
+(what the kernel accepts is exactly what renders): `card-strip · table · form ·
+chart · code-block · media-viewer · kpi-tile · timeline · markdown-block ·
+button-row · card-list · html-embed`.
 
 Prop shapes the shell renders (keep to these):
 - **kpi-tile** `{value, label, delta?}`

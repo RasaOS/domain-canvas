@@ -1,5 +1,20 @@
 # Changelog — rasa.domain.canvas
 
+## 0.6.1 — 2026-07-12
+
+Phase C hardening — the remaining gate + recovery gaps.
+
+- **data_sources tenant-containment** (check-app): reject absolute paths and
+  paths that escape the tenant root (>3 levels up from the app dir). Was
+  doctrine-only and unenforced (security-adjacent). New fixture `data-source-escape`.
+- **Write-order is an order, not a transaction** (APP_MODEL): the non-atomicity
+  is documented honestly; REBUILD gains an integrity pass (`check-app` on session
+  start) so a fresh or interrupted session repairs the directory to GREEN before
+  trusting the canvas — files-are-truth recovery, not atomicity.
+- **Gate bypass is loud now** (PROCESSES §gate): an unreachable-mount publish must
+  announce itself UNCHECKED, hand-verify the envelope, and re-check next turn
+  (closes fully when KERNEL_ASKS #9 lands).
+
 ## 0.6.0 — 2026-07-12
 
 Reconciled to canon — the enforcement layer now validates the REAL kernel

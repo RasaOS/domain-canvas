@@ -72,6 +72,12 @@ The kernel canvas store is Redis-backed and a container restart can wipe it
 - **The write-order law:** 1) `screens/<id>.json` → 2) `app.json` (+ `state/`
   and `CHANGELOG.md` if touched) → 3) `canvas_set`. Never reversed, never
   partial. A publish that skipped the file write didn't happen.
+- **It is an ORDER, not a transaction.** The session is the only writer and has
+  no multi-file commit, so an interrupted turn can leave a half-written manifest
+  or a screen file that disagrees with `app.json`. The recovery is REBUILD's
+  integrity pass (`check-app` on session start): files are truth, so a fresh
+  session repairs the directory to GREEN before it trusts the canvas. The
+  guarantee is ordering + idempotent recovery, not atomicity.
 - Nothing durable exists only on the canvas. If it matters, it is in a file
   before it is on screen.
 - If `canvas_get` returns empty or older than the files: run REBUILD silently

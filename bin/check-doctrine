@@ -125,6 +125,13 @@ def check_schema():
         json.loads(text)
     except Exception as e:
         fail(f"schemas/rasa.app.v1.schema.json: not valid JSON ({e})")
+    # The vendored layout schema check-app loads its constraint values from.
+    ltext = read(ROOT / "schemas" / "rasa.layout.v1.json")
+    if ltext is not None:
+        try:
+            json.loads(ltext)["properties"]["screen"]["properties"]["layout_grid"]["enum"]
+        except Exception as e:
+            fail(f"schemas/rasa.layout.v1.json: invalid or missing layout_grid enum ({e}) — check-app loads it")
 
 
 def check_terseness(docs):

@@ -3,6 +3,15 @@
 Filed from the canvas-vertical prototype (frontend-rasaos, 2026-07-07). Each is
 surgical; none block the current session-management model.
 
+**Resolved against the shipped kernel (2026-07-12, kernel v0.29–v0.31 + canon
+v1.4.0):** #3 (html-embed vocabulary) — `html-embed` is allowlisted + schema-capped
+(TASK-249); #10 (kernel-side manifest/layout validation) — `canvas_set` runs ajv
+against `rasa.layout.v1.json` + the allowlist + caps at the write boundary
+(TASK-226); #5 (documented size limits) — layout 256KB, html-embed 16KB, 64
+regions (validator.ts). Still open below: #1 (args.canvas_id), #2 (auto-create
+cwd), #4 (element-scoped tool policy), #6 (durability), #7 (revert tool),
+#8 (version history), #9 (element-mount handle).
+
 1. **`args.canvas_id` on POST /v1/commands** — address a NAMED canvas from any
    session, decoupling canvas identity from session identity. Retires the
    one-canvas-per-session constraint and enables multi-screen apps.

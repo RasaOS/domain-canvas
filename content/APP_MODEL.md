@@ -87,13 +87,18 @@ The kernel canvas store is Redis-backed and a container restart can wipe it
 
 ## Enforcement — the law is machine-checked
 
-- The manifest contract is published as `schemas/rasa.app.v1.schema.json`
-  (in this element's repo).
-- `bin/check-app <app-dir>` (ships with this element) audits an app against
-  this whole file: registries exhaustive both ways, event coverage (including
-  `rasa.emit` scans inside artifacts), nav contract + targets, screen.name
-  identity, size budgets, state/data hygiene. RED blocks a publish — see
-  PROCESSES.md §gate.
+- The manifest contract is published as `schemas/rasa.app.v1.schema.json` and
+  the layout contract as `schemas/rasa.layout.v1.json` — the vendored copy of
+  `RasaOS/schema`'s `rasa.layout.v1.json` (== the kernel's enforced copy).
+- `bin/check-app <app-dir>` (ships with this element) audits an app against this
+  whole file AND the vendored layout schema: registries exhaustive both ways,
+  event coverage (including `rasa.emit` scans inside artifacts), nav contract +
+  targets, screen.name identity + `^[a-z][a-z0-9-]*` pattern, required
+  `screen.layout_grid` + region `slot`, the 12-name component allowlist
+  (canvas_set rejects anything else), per-component prop shapes (canon Appendix
+  B.2), the kernel `validator.ts` caps (256KB layout / 64 regions /
+  dup-region-id), and state/data hygiene. GREEN means "canvas_set will accept
+  this and it renders"; RED blocks a publish — see PROCESSES.md §gate.
 - The doctrine audits itself: `bin/check-doctrine` keeps BUILDER / APP_MODEL /
   PROCESSES / COMPONENTS in lockstep and gates every commit to the element.
 

@@ -1,5 +1,33 @@
 # Changelog — rasa.domain.canvas
 
+## 0.6.0 — 2026-07-12
+
+Reconciled to canon — the enforcement layer now validates the REAL kernel
+contract. Ground truth (kernel + frontend-rasaos + RasaOS/schema on disk) showed
+the doctrine validated a fictional flat-regions layout the kernel would reject;
+canon v1.4.0 absorbed the canvas family (doc 10 v1.1: the layout_grid+slot
+envelope, 22 components incl. html-embed, per-profile Appendix B incl. the B.2
+canvas dialect; Spec §56), and this release conforms the element to it.
+
+- **Vendored `schemas/rasa.layout.v1.json`** (== RasaOS/schema 0.3.0 == kernel).
+  check-app loads its constraint values so it cannot drift from the published schema.
+- **check-app is a real gate now.** GREEN means "canvas_set accepts this AND it
+  renders": required `screen.layout_grid` + region `slot`, name/id `^[a-z][a-z0-9-]*`,
+  title ≤60; components HARD-failed against the real 12-name allowlist (was 21 + a
+  soft warn); kernel `validator.ts` caps (256KB layout / 64 regions / dup-region-id —
+  the old 32KB is now a soft density warn); per-component required props (canon
+  Appendix B.2). Golden passes check-app AND the real kernel `validateLayout`.
+- **Allowlist 21→12** in `_contract.py` + COMPONENTS.md; allowlist == shell-rendered;
+  non-allowlisted is rejected, not error-tiled. `html-embed` is first-class.
+- **Doctrine text reconciled** (COMPONENTS.md): canonical prop keys (content, id,
+  `data:[{label,value}]`, events, subtitle, button-row intent→id precedence,
+  media-viewer = http(s) link not a data-URI embed); layout-doc def gains
+  layout_grid+slot; artifact section updated.
+- **Golden + fixtures reshaped** to the real envelope; 4 new negative fixtures
+  (no-layout-grid, no-slot, bad-component, bad-props) prove the new teeth.
+- KERNEL_ASKS #3 (html-embed) + #10 (kernel-side validation) + #5 (size limits)
+  marked resolved against the shipped kernel.
+
 ## 0.5.3 — 2026-07-11
 
 ### Completed the SA-023 `orchestrator`→`domain` content re-role (deferred at v0.5.0)

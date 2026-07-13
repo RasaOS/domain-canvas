@@ -1,5 +1,32 @@
 # Changelog — rasa.domain.canvas
 
+## 0.7.0 — 2026-07-13
+
+Smart-merge of the page-creation nav standard onto the Phase-B/C enforcement
+foundation (branch `claude/page-creation-standards-c5e7c9`). The two are
+complementary — real-contract enforcement (how a screen is drawn) + the nav
+topology that scales multi-screen apps — reconciled into one gate.
+
+- **Nav contract: sections mesh, leaves climb** — replaces the old full-mesh nav
+  (which blew up N² on per-record detail screens). An optional `screens[].parent`
+  splits screens into SECTIONS (no parent — co-equal tabs meshing to peers) and
+  LEAVES (a detail/step whose `nav` carries only ancestor back-links, default one
+  back button); parent graph acyclic + rooted. Forward/lateral jumps live in
+  content regions and their `events[]` row carries `target:<screen-id>`. Every
+  leaf must be reachable (a forward `nav:` link or an `events[].target`) — a dead
+  leaf FAILs. Lands across check-app + APP_MODEL §multi-screen + BUILDER + the
+  rasa.app.v1 schema (`parent`/`target`).
+- **card-strip `on_click` is a dead handler → hard FAIL** (the shell renders
+  card-strip clicks inert; use card-list). Dropped from the event harvest too.
+- New golden `examples/task-backlog` demonstrates LIST_DETAIL (`card-list`
+  `open:<id>` → detail leaves) and passes check-app AND the real kernel
+  `validateLayout`; check-doctrine now gates every golden. Five new nav fixtures
+  (`leaf-missing-back`, `leaf-nav-to-sibling`, `parent-cycle`, `unreachable-leaf`,
+  `card-strip-onclick`). The design spec lands in `docs/page-creation-standard.md`.
+- **Staged for a follow-up authoring pass (NOT in this merge):** the LIST_DETAIL
+  pattern → `content/PATTERNS.md`, the SCAFFOLD process, and the `open:*` gate
+  invariant (see `docs/page-creation-standard.md` §1–4).
+
 ## 0.6.1 — 2026-07-12
 
 Phase C hardening — the remaining gate + recovery gaps.

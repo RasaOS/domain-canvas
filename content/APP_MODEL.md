@@ -108,18 +108,57 @@ The kernel canvas store is Redis-backed and a container restart can wipe it
 - The doctrine audits itself: `bin/check-doctrine` keeps BUILDER / APP_MODEL /
   PROCESSES / COMPONENTS in lockstep and gates every commit to the element.
 
-## Multi-screen — many screens, one canvas (for now)
+## Multi-screen — sections mesh, leaves climb (one canvas, for now)
 
-The kernel keys one canvas per session (KERNEL_ASKS #1), so:
+The kernel keys one canvas per session (KERNEL_ASKS #1), so ALL screens exist
+as files; exactly ONE (`active_screen`) is on the canvas at a time. Switching =
+publishing a different file (SWITCH_SCREEN). Nav is STATELESS — the kernel keeps
+no history/back stack, so "back" must be encoded in the files, not remembered.
 
-- ALL screens exist as files; exactly ONE (`active_screen`) is on the canvas
-  at a time. Switching screens = publishing a different file (SWITCH_SCREEN).
-- **The nav contract:** every screen with siblings carries a region
-  `{ "id": "nav", "component": "button-row" }` whose buttons are
-  `{ "id": "nav:<screen-id>", "label": "<title>" }` — one per OTHER screen.
-  A `[canvas] nav:<id> (nav)` turn is a SWITCH_SCREEN, always. Keep nav
-  first in `regions[]` unless the screen has a reason not to.
-- Adding a screen touches every sibling's nav (ADD_SCREEN owns this).
-- When `args.canvas_id` lands, screens map 1:1 onto named canvases and
-  `active_screen` becomes advisory. The files, the nav contract, and the
-  processes stay exactly as they are — only the publish target changes.
+**Two screen classes, derived from one optional field.** Each `app.json#screens`
+row may carry `parent: "<screen-id>"`:
+
+- **SECTION** (row has NO `parent`) — a co-equal top-level screen (a tab), also
+  called a *root*.
+- **LEAF** (row HAS `parent`) — a spawned detail / step / nested screen. `parent`
+  names its single, deterministic back-target: a registered screen id, not
+  itself; the parent graph must be acyclic and every leaf's chain must terminate
+  at a section. Classes are DERIVED — SECTIONS = rows without `parent`, LEAVES =
+  rows with it.
+
+**The nav contract.** A screen with siblings carries one region
+`{ "id": "nav", "component": "button-row" }` whose `nav:<screen-id>` buttons are
+its *structural* links; a `[canvas] nav:<id> (nav)` turn is a SWITCH_SCREEN,
+always. What those targets must equal is keyed on class:
+
+- **SECTION:** targets == every OTHER section (full mesh among sections only —
+  the old rule, now scoped to the few tabs). A lone section (the only
+  parent-less screen) carries no `nav:` buttons.
+- **LEAF:** targets must include the immediate `parent` and may include only
+  further ancestors — `parent ∈ targets ⊆ ancestors(self)`. The default shape is
+  one button `nav:<parent>` (one-tap back); a breadcrumb lists more ancestors. A
+  leaf NEVER carries a nav button to a sibling leaf or any non-ancestor.
+
+**Structural vs. forward.** The `nav` region is structural only (back / peer-tab).
+Every FORWARD or LATERAL jump — a list card opening a detail, a wizard "next", a
+cross-entity link — is an ordinary action (`nav:<id>` button, card `on_click`,
+form `submit`) in ANY OTHER region, and its `app.json#events` row carries
+`target: <screen-id>` naming where it goes. This split is what stops the
+combinatorial blow-up: N spawned details are N one-button leaves; the links
+between them are content, not structure.
+
+**Reachability.** Every leaf must be reachable by a forward link — either a
+`nav:<leaf>` button/`on_click` in a content region, or an `events[]` row with
+`target: <leaf>`. A declared-but-unlinked leaf is a dead screen and fails the
+gate. Sections are reachable by construction (the mesh / the default).
+
+**"Back" is deterministic and stateless:** a leaf's `nav:<parent>` button IS
+back — the same target however the user arrived. Multi-level climb repeats
+one-step-back up the chain. Under a cross-link a detail returns to its ONE
+canonical parent (the owning entity's list) even when reached laterally — the
+honest cost of stateless nav.
+
+Adding a screen is ADD_SCREEN's job and branches on class (a section joins the
+mesh; a leaf gets one back button + one inbound forward link). When
+`args.canvas_id` lands, screens map 1:1 onto named canvases and `active_screen`
+becomes advisory; the parent tree is pure file metadata and the rule is unchanged.
